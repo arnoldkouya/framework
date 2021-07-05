@@ -1,12 +1,15 @@
 <?php
+
 namespace Bow\View\Engine;
 
-use Bow\Config\Config;
+use Bow\Configuration\Loader;
 use Bow\View\EngineAbstract;
 
 class PHPEngine extends EngineAbstract
 {
     /**
+     * The engine name
+     *
      * @var string
      */
     protected $name = 'php';
@@ -14,16 +17,17 @@ class PHPEngine extends EngineAbstract
     /**
      * PHPEngine constructor.
      *
-     * @param Config $config
+     * @param Loader $config
+     *
+     * @return void
      */
-    public function __construct(Config $config)
+    public function __construct(Loader $config)
     {
         $this->config = $config;
     }
 
     /**
-     * @inheritDoc
-     * @throws
+     * {@inheritdoc}
      */
     public function render($filename, array $data = [])
     {
@@ -35,7 +39,7 @@ class PHPEngine extends EngineAbstract
             $filename = $this->config['view.path'] . '/' . $filename;
         }
 
-        $cache_hash_filename = '_PHP_'.hash('sha1', $hash_filename).'.php';
+        $cache_hash_filename = '_PHP_'.md5($hash_filename).'.php';
 
         $cache_hash_filename = $this->config['view.cache'].'/'.$cache_hash_filename;
 
@@ -43,27 +47,26 @@ class PHPEngine extends EngineAbstract
 
         if (file_exists($cache_hash_filename)) {
             if (filemtime($cache_hash_filename) >= fileatime($filename)) {
-                return include $cache_hash_filename;
+                ob_start();
+
+                require $cache_hash_filename;
+
+                return ob_get_clean();
             }
         }
 
         ob_start();
 
-        include $filename;
-
-        $data = ob_get_clean();
-
         $content = file_get_contents($filename);
-        // Mise en cache
+
+        // Save to cache
         file_put_contents(
             $cache_hash_filename,
-            <<<PHP
-<?php ob_start(); ?>$content<?php \$__bow_php_rendering_content = ob_get_clean(); ?>
-<?php 
-return \$__bow_php_rendering_content;
-PHP
+            $content
         );
 
-        return $data;
+        require $cache_hash_filename;
+
+        return ob_get_clean();
     }
 }

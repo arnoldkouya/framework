@@ -1,8 +1,9 @@
 <?php
-namespace Bow\Exception;
+
+namespace Bow\Http\Exception;
 
 use ErrorException;
 
 class RequestException extends ErrorException
 {
-};
+}

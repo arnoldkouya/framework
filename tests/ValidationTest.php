@@ -135,4 +135,26 @@ class ValidationTest extends \PHPUnit\Framework\TestCase
 
         $this->assertTrue($v2->fails());
     }
+
+    public function testNotExists()
+    {
+        $v = Validator::make(['name' => 'OtherData'], ['name' => 'required|!exists:pets,name']);
+
+        $v2 = Validator::make(['name' => 'Couli'], ['name' => 'required|!exists:pets']);
+
+        $this->assertFalse($v->fails());
+
+        $this->assertTrue($v2->fails());
+    }
+
+    public function testUnique()
+    {
+        $v = Validator::make(['name' => 'Couli'], ['name' => 'required|unique:pets,name']);
+
+        $v2 = Validator::make(['name' => 'Milou'], ['name' => 'required|unique:pets']);
+
+        $this->assertTrue($v->fails());
+
+        $this->assertTrue($v2->fails());
+    }
 }

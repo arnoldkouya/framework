@@ -2,67 +2,45 @@
 
 namespace Bow\Auth;
 
-use Bow\Security\Hash;
-use Bow\Session\Session;
-use Bow\Auth\Exception\AuthenticateException;
+use Bow\Auth\Exception\AuthenticationException;
 
 class Auth
 {
     /**
+     * The Auth instance
+     *
      * @var Auth
      */
     private static $instance;
 
     /**
+     * The Auth configuration
+     *
      * @var array
      */
     private static $config;
 
     /**
-     * @var array
-     */
-    private $provider;
-
-    /**
-     * @var array
-     */
-    protected $credentials = [
-        'email' => 'email',
-        'password' => 'password'
-    ];
-
-    /**
-     * Auth constructor.
-     *
-     * @param array $provider
-     * @param array $credentials
-     */
-    public function __construct(array $provider, $credentials = [])
-    {
-        $this->provider = $provider;
-
-        $this->credentials = array_merge($credentials, $this->credentials);
-    }
-
-    /**
      * Configure Auth system
      *
      * @param array $config
-     * @return Auth
+     * @return GuardContract
      */
     public static function configure(array $config)
     {
+        if (!is_null(static::$instance)) {
+            return static::$instance;
+        }
+
         static::$config = $config;
 
-        $provider = $config['default'];
-
-        return static::$instance = new Auth($config[$provider]);
+        return static::guard($config['default']);
     }
 
     /**
-     * Get Auth instance
+     * Get Auth Instance
      *
-     * @return Auth
+     * @return GuardContract
      */
     public static function getInstance()
     {
@@ -73,112 +51,48 @@ class Auth
      * Check if user is authenticate
      *
      * @param null|string $guard
-     * @return Auth|null
+     * @return GuardContract
      *
-     * @throws AuthenticateException
+     * @throws AuthenticationException
      */
-    public function guard($guard = null)
+    public static function guard($guard = null)
     {
         if (is_null($guard)) {
-            if (static::$instance instanceof Auth) {
-                return static::$instance;
-            }
-
-            return null;
+            return static::$instance;
         }
 
-        if (! isset(static::$config[$guard])) {
-            throw new AuthenticateException("Aucune configuration trouvé", E_ERROR);
+        if (!isset(static::$config[$guard]) || !is_array(static::$config[$guard])) {
+            throw new AuthenticationException("Configuration not found for [$guard] guard.", E_ERROR);
         }
 
         $provider = static::$config[$guard];
 
-        return new Auth($provider);
-    }
+        if ($provider['type'] == 'session') {
+            if (static::$instance instanceof SessionGuard) {
+                return static::$instance;
+            }
 
-    /**
-     * Check if user is authenticate
-     *
-     * @return bool
-     */
-    public function check()
-    {
-        return Session::has('_auth');
-    }
-
-    /**
-     * Check if user is authenticate
-     *
-     * @return bool
-     */
-    public function user()
-    {
-        return Session::get('_auth');
-    }
-
-    /**
-     * Check if user is authenticate
-     *
-     * @param array $credentials
-     * @return bool
-     */
-    public function attempts(array $credentials)
-    {
-        $model = $this->provider['model'];
-
-        $user  = $model::where('email', $credentials[$this->credentials['email']])->first();
-
-        if (is_null($user)) {
-            return false;
+            return static::$instance = new SessionGuard($provider);
         }
 
-        if (Hash::check($user->password, $credentials[$this->credentials['password']])) {
-            Session::add('_auth', $user);
-
-            return true;
+        if (static::$instance instanceof JwtGuard) {
+            return static::$instance;
         }
 
-        return false;
+        return static::$instance = new JwtGuard($provider);
     }
 
     /**
-     * Make direct login
-     *
-     * @param mixed $user
-     * @return bool
-     */
-    public function login(Authentication $user)
-    {
-        Session::add('_auth', $user);
-
-        return true;
-    }
-
-    /**
-     * Get the user id
-     *
-     * @return bool
-     */
-    public function id()
-    {
-        return Session::get('_auth')->getAuthenticateUserId();
-    }
-
-    /**
-     * __call
+     * __callStatic
      *
      * @param string $method
-     * @param array $parameters
-     * @return mixed
-     *
-     * @throws \BadMethodCallException
+     * @param array $params
+     * @return GuardContract
      */
-    public static function __callStatic($method, array $parameters)
+    public static function __callStatic(string $method, array $params)
     {
         if (method_exists(static::$instance, $method)) {
-            return call_user_func_array([static::$instance, $method], $parameters);
+            return call_user_func_array([static::$instance, $method], $params);
         }
-
-        throw new \BadMethodCallException(sprintf("La methode %s n'existe pas", $method), 1);
     }
 }

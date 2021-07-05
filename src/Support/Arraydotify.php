@@ -5,19 +5,25 @@ namespace Bow\Support;
 class Arraydotify implements \ArrayAccess
 {
     /**
+     * The array collection
+     *
      * @var array
      */
     private $array = [];
 
     /**
+     * The origin array
+     *
      * @var array
      */
     private $origin = [];
 
     /**
-     * DotifyArray constructor.
+     * Arraydotify constructor.
      *
      * @param array $array
+     *
+     * @return void
      */
     public function __construct(array $array = [])
     {
@@ -27,7 +33,9 @@ class Arraydotify implements \ArrayAccess
     }
 
     /**
-     * Permet de metre a jour les données d'origine
+     * Update the original data
+     *
+     * @return void
      */
     private function updateOrigin()
     {
@@ -37,7 +45,10 @@ class Arraydotify implements \ArrayAccess
     }
 
     /**
+     * Make array dotify
+     *
      * @param array $array
+     *
      * @return Arraydotify
      */
     public static function make(array $array = [])
@@ -46,8 +57,11 @@ class Arraydotify implements \ArrayAccess
     }
 
     /**
+     * Dotify action
+     *
      * @param array  $array
      * @param string $prepend
+     *
      * @return array
      */
     private function dotify(array $array, $prepend = '')
@@ -55,30 +69,32 @@ class Arraydotify implements \ArrayAccess
         $dot = [];
 
         foreach ($array as $key => $value) {
-            if (is_array($value) || is_object($value)) {
-                $value = (array) $value;
-
-                $dot = array_merge($dot, $this->dotify(
-                    $value,
-                    $prepend.$key.'.'
-                ));
-
+            if (!(is_array($value) || is_object($value))) {
+                $dot[$prepend.$key] = $value;
                 continue;
             }
 
-            $dot[$prepend.$key] = $value;
+            $value = (array) $value;
+
+            $dot = array_merge($dot, $this->dotify(
+                $value,
+                $prepend.$key.'.'
+            ));
         }
 
         return $dot;
     }
 
     /**
+     * Transform the dot access to array access
+     *
      * @param array  $array
      * @param string $key
      * @param mixed  $value
+     *
      * @return mixed
      */
-    public function dataSet(&$array, $key, $value)
+    private function dataSet(&$array, $key, $value)
     {
         $keys = explode('.', $key);
 
@@ -98,36 +114,11 @@ class Arraydotify implements \ArrayAccess
     }
 
     /**
-     * @inheritDoc
-     */
-    public function offsetExists($offset)
-    {
-        if (isset($this->array[$offset])) {
-            return true;
-        }
-
-        $array = $this->find($this->origin, $offset);
-
-        return (is_array($array) && !empty($array));
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function offsetGet($offset)
-    {
-        if (!$this->offsetExists($offset)) {
-            return null;
-        }
-
-        return isset($this->array[$offset])
-            ? $this->array[$offset]
-            : $this->find($this->origin, $offset);
-    }
-
-    /**
-     * @param $origin
-     * @param $segment
+     * Find information to the origin array
+     *
+     * @param array $origin
+     * @param string $segment
+     *
      * @return array|mixed|null
      */
     private function find($origin, $segment)
@@ -159,6 +150,34 @@ class Arraydotify implements \ArrayAccess
         return $array;
     }
 
+    /**
+     * @inheritDoc
+     */
+    public function offsetExists($offset)
+    {
+        if (isset($this->array[$offset])) {
+            return true;
+        }
+
+        $array = $this->find($this->origin, $offset);
+
+        return (is_array($array) && !empty($array));
+    }
+
+    /**
+     * @inheritDoc
+     */
+    public function offsetGet($offset)
+    {
+        if (!$this->offsetExists($offset)) {
+            return null;
+        }
+
+        return isset($this->array[$offset])
+            ? $this->array[$offset]
+            : $this->find($this->origin, $offset);
+    }
+    
     /**
      * @inheritDoc
      */

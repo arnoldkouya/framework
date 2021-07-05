@@ -2,7 +2,7 @@
 return [
     'driver' => 'smtp',
     'charset'  => 'utf8',
-    // smtp authentification
+    
     'smtp' => [
         'hostname' => 'localhost',
         'username' => 'test@test.dev',
@@ -11,5 +11,19 @@ return [
         'tls'      => false,
         'ssl'      => false,
         'timeout'  => 50,
+    ],
+
+    'mail' => [
+        'default' => 'contact',
+        'froms' => [
+            'contact' => [
+                'address' => app_env('MAIL_FROM_EMAIL'),
+                'name' => app_env('MAIL_FROM_NAME')
+            ],
+            'info' => [
+                'address' => 'info@exemple.com',
+                'username' => 'Address information'
+            ]
+        ]
     ]
 ];

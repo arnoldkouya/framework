@@ -1,82 +1,86 @@
 <?php
 
-namespace App\Controllers;
+namespace {baseNamespace}{namespace};
 
-use App\Controllers\Controller;
+use {baseNamespace}\Controller;
+use Bow\Http\Request;
 
-class className extends Controller
+class {className} extends Controller
 {
     /**
-     * Point d'entré de l'application
+     * Application entry point
      *
      * @return void
      */
     public function index()
     {
-        // Codez Ici
+        // Code Here
     }
 
     /**
-     * Permet d'afficher la vue permettant de créer une résource.
+     * Displays the view for creating a resource.
      *
+     * @param Request $request
      * @return void
      */
     public function create()
     {
-        // Codez Ici
+        // Code Here
     }
 
     /**
-     * Permet d 'ajouter une nouvelle résource dans la base d'information
+     * Add a new resource in the information base
      *
+     * @param Request $request
      * @return void
      */
-    public function store()
+    public function store(Request $request)
     {
-        // Codez Ici
+        // Code Here
     }
 
     /**
-     * Permet de récupérer un information précise avec un identifiant.
+     * Allows you to retrieve precise information with an identifier.
      *
-     * @param mixed $id L'identifiant de l'élément à récupérer
+     * @param  mixed $id
      * @return void
      */
     public function show($id)
     {
-        // Codez Ici
+        // Code Here
     }
 
     /**
-     * Mise à jour d'un ressource en utilisant paramètre du GET
+     * Show updating form using GET
      *
-     * @param mixed $id L'identifiant de l'élément à mettre à jour
+     * @param  mixed $id
      * @return void
      */
     public function edit($id)
     {
-        // Codez Ici
+        // Code Here
     }
 
     /**
-     * Mise à jour d'une ressource
+     * Update a resource
      *
-     * @param mixed $id L'identifiant de l'élément à mettre à jour
+     * @param Request $request
+     * @param  mixed $id
      * @return void
      */
-    public function update($id)
+    public function update(Request $request, $id)
     {
-        // Codez Ici
+        // Code Here
     }
 
     /**
-     * Permet de supprimer une ressource
+     * Delete a resource
      *
-     * @param mixed $id L'identifiant de l'élément à supprimer
+     * @param mixed $id
      * @return void
      */
     public function destroy($id)
     {
-        // Codez Ici
+        // Code Here
     }
 }

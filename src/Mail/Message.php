@@ -1,96 +1,107 @@
 <?php
+
 namespace Bow\Mail;
 
-use Bow\Support\Str;
 use Bow\Mail\Exception\MailException;
+use Bow\Support\Str;
 
-/**
- * Class Message
- *
- * @author  Franck Dakia <dakiafranck@gmail.com>
- * @package Bow\Mail
- */
 class Message
 {
+    /**
+     * The mail end of line
+     *
+     * @var string
+     */
     const END = "\r\n";
 
     /**
-     * Liste des entêtes
+     * List of headers
      *
      * @var array
      */
     private $headers = [];
 
     /**
-     * définir le destinataire
+     * Define the recipient
      *
      * @var array
      */
     private $to = [];
 
     /**
-     * définir l'object du mail
+     * Define the recipient
      *
      * @var string
      */
     private $subject = null;
 
     /**
+     * The mail attachment list
+     *
      * @var array
      */
-    private $attachement = [];
+    private $attachment = [];
 
     /**
+     * Define the mail sender
+     *
      * @var string
      */
     private $from = null;
 
     /**
-     * Définir le message
+     * The mail message
      *
      * @var string
      */
     private $message = null;
 
     /**
-     * Définir le frontière entre les contenus.
+     * Define the boundary between the contents.
      *
      * @var string
      */
     private $boundary;
 
     /**
+     * The mail charset
+     *
      * @var string
      */
     private $charset = "utf-8";
 
     /**
+     * The mail message content-type
+     *
      * @var string
      */
     private $type = "text/html";
 
     /**
-     * fromDefined
+     * The flag allows to enable sender
      *
      * @var boolean
      */
     private $fromDefined = false;
 
     /**
-     * Construction d'une instance de SimpleMail
+     * Message Constructor.
      *
      * @param bool $boundary
      */
     public function __construct($boundary = true)
     {
         $this->setDefaultHeader();
+
         if ($boundary) {
             $this->setBoundary("__Bow-Framework-" . md5(date("r")));
         }
     }
 
     /**
-     * Définir les entête par défaut
+     * Set the default header
+     *
+     * @return void
      */
     public function setDefaultHeader()
     {
@@ -104,7 +115,7 @@ class Message
     }
 
     /**
-     * Ajout des entêtes personnel
+     * Add personal headers
      *
      * @param string $key
      * @param string $value
@@ -115,10 +126,10 @@ class Message
     }
 
     /**
-     * to, définir le récépteur
+     * Define the receiver
      *
      * @param string $to
-     * @param string $name
+     * @param null $name
      *
      * @return Message
      */
@@ -130,12 +141,15 @@ class Message
     }
 
     /**
-     * @param array $list_desc
+     * Define the receiver in list
+     *
+     * @param array $sendTo
+     *
      * @return $this
      */
-    public function toList(array $list_desc)
+    public function toList(array $sendTo)
     {
-        foreach ($list_desc as $name => $to) {
+        foreach ($sendTo as $name => $to) {
             $this->to[] = $this->formatEmail($to, !is_int($name) ? $name : null);
         }
 
@@ -143,17 +157,17 @@ class Message
     }
 
     /**
-     * Formaté l'email récu.
+     * Format the email receiver
      *
      * @param string $email
-     * @param string $name
+     * @param null $name
      *
      * @return array
      */
     private function formatEmail($email, $name = null)
     {
         /**
-         * Organisation de la liste des senders
+         * Organization of the list of senders
          */
         if (!is_string($name) && preg_match('/^(.+)\s+<(.*)>\z$/', $email, $matches)) {
             array_shift($matches);
@@ -162,14 +176,14 @@ class Message
         }
 
         if (!Str::isMail($email)) {
-            throw new \InvalidArgumentException("$email n'est pas email valide.", E_USER_ERROR);
+            throw new \InvalidArgumentException("$email is not valid email.", E_USER_ERROR);
         }
 
         return [$name, $email];
     }
 
     /**
-     * addFile, Permet d'ajout un fichier d'attachement
+     * Add an attachment file
      *
      * @param string $file
      *
@@ -180,22 +194,25 @@ class Message
     public function addFile($file)
     {
         if (!is_file($file)) {
-            throw new MailException("Fichier introuvable.", E_USER_ERROR);
+            throw new MailException("The $file file was not found.", E_USER_ERROR);
         }
 
-        $this->attachement[] = $file;
+        $this->attachment[] = $file;
 
         return $this;
     }
 
     /**
+     * Compile the mail header
+     *
      * @return string
      */
     public function compileHeaders()
     {
-        if (count($this->attachement) > 0) {
+        if (count($this->attachment) > 0) {
             $this->headers[] = "Content-type: multipart/mixed; boundary=\"{$this->boundary}\"" . self::END;
-            foreach ($this->attachement as $file) {
+
+            foreach ($this->attachment as $file) {
                 $filename = basename($file);
                 $this->headers[] = "--" . $this->boundary;
                 $this->headers[] = "Content-Type: application/octet-stream; name=\"{$filename}\"";
@@ -203,6 +220,7 @@ class Message
                 $this->headers[] = "Content-Disposition: attachment" . self::END;
                 $this->headers[] = chunk_split(base64_encode(file_get_contents($file)));
             }
+
             $this->headers[] = "--" . $this->boundary;
         }
 
@@ -210,7 +228,7 @@ class Message
     }
 
     /**
-     * subject, Définit le suject du mail
+     * Define the subject of the mail
      *
      * @param string $subject
      *
@@ -219,14 +237,15 @@ class Message
     public function subject($subject)
     {
         $this->subject = $subject;
+
         return $this;
     }
 
     /**
-     * from, définir l'expéditeur du mail
+     * Define the sender of the mail
      *
      * @param string $from
-     * @param string $name
+     * @param null $name
      *
      * @return Message
      */
@@ -238,7 +257,7 @@ class Message
     }
 
     /**
-     * toHtml, définir le type de contenu en text/html
+     * Define the type of content in text/html
      *
      * @param  string $html=null
      * @return Message
@@ -249,7 +268,7 @@ class Message
     }
 
     /**
-     * toText, définir le corps du message
+     * Add message body
      *
      * @param string $text
      *
@@ -263,6 +282,8 @@ class Message
     }
 
     /**
+     * Add message body and set message type
+     *
      * @param string $message
      * @param string $type
      * @return Message
@@ -270,6 +291,7 @@ class Message
     private function type($message, $type)
     {
         $this->type = $type;
+
         $this->message = $message;
 
         return $this;
@@ -279,52 +301,55 @@ class Message
      * Adds blind carbon copy
      *
      * @param string $mail
-     * @param string $name [optional]
+     * @param null $name [optional]
      *
      * @return Message
      */
     public function addBcc($mail, $name = null)
     {
         $mail = ($name !== null) ? (ucwords($name) . " <{$mail}>") : $mail;
+
         $this->headers[] = "Bcc: $mail";
 
         return $this;
     }
 
     /**
-     * Adds carbon copy
+     * Add carbon copy
      *
      * @param string $mail
-     * @param string $name [optional]
+     * @param null $name [optional]
      *
      * @return Message
      */
     public function addCc($mail, $name = null)
     {
         $mail = ($name !== null) ? (ucwords($name) . " <{$mail}>") : $mail;
+
         $this->headers[] = "Cc: $mail";
 
         return $this;
     }
 
     /**
-     * Adds Reply-To
+     * Add Reply-To
      *
      * @param string $mail
-     * @param string $name=null
+     * @param null $name
      *
      * @return Message
      */
     public function addReplyTo($mail, $name = null)
     {
         $mail = ($name !== null) ? (ucwords($name) . " <{$mail}>") : $mail;
+
         $this->headers[] = "Replay-To: $mail";
 
         return $this;
     }
 
     /**
-     * Modifie la valeur de la frontière
+     * Change the value of the boundary
      *
      * @param $boundary
      */
@@ -334,23 +359,24 @@ class Message
     }
 
     /**
-     * Adds Return-Path
+     * Add Return-Path
      *
      * @param string $mail
-     * @param string $name=null
+     * @param null $name = null
      *
      * @return Message
      */
     public function addReturnPath($mail, $name = null)
     {
         $mail = ($name !== null) ? (ucwords($name) . " <{$mail}>") : $mail;
+
         $this->headers[] = "Return-Path: $mail";
 
         return $this;
     }
 
     /**
-     * Sets email priority.
+     * Set email priority.
      *
      * @param int $priority
      *
@@ -364,18 +390,20 @@ class Message
     }
 
     /**
-     * Modifir le message du mail
+     * Edit the mail message
      *
      * @param $message
+     * @param string $type
      */
     public function setMessage($message, $type = 'text/html')
     {
         $this->type = $type;
+
         $this->message = $message;
     }
 
     /**
-     * Récupère les entêtes
+     * Get the headers
      *
      * @return array
      */
@@ -385,7 +413,7 @@ class Message
     }
 
     /**
-     * Récupère la liste des récepteurs
+     * Get the list of receivers
      *
      * @return array
      */
@@ -395,7 +423,7 @@ class Message
     }
 
     /**
-     * Récupère l'objet du mail
+     * Get the subject of the email
      *
      * @return string
      */
@@ -405,7 +433,7 @@ class Message
     }
 
     /**
-     * Récupère l'expéditeur
+     * Get the sender
      *
      * @return string
      */
@@ -415,7 +443,7 @@ class Message
     }
 
     /**
-     * Récupère le message du mail
+     * Get the email message
      *
      * @return string
      */
@@ -425,7 +453,7 @@ class Message
     }
 
     /**
-     * Récupère l'encodage du mail
+     * Get the email encoding
      *
      * @return string
      */
@@ -435,7 +463,7 @@ class Message
     }
 
     /**
-     * Récupère le type de contenu
+     * Get Content-Type
      *
      * @return string
      */
@@ -445,7 +473,7 @@ class Message
     }
 
     /**
-     * Récupère la valeur d'une variable qui permet de vérifier qu'un expéditeur est enrégistré
+     * Get the value of a variable that verifies that a sender is registered
      *
      * @return boolean
      */

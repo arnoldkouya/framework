@@ -24,7 +24,7 @@ class QueryModelTest extends \PHPUnit\Framework\TestCase
 {
     public function testGetConnection()
     {
-        return Database::instance();
+        return Database::getInstance();
     }
 
     /**
@@ -151,10 +151,32 @@ class QueryModelTest extends \PHPUnit\Framework\TestCase
      * @depends testGetConnection
      * @param Database $db
      */
-    public function testFindEmoty(Bow\Database\Database $db)
+    public function testFindEmpty(Bow\Database\Database $db)
     {
         $pet = Pets::find(100);
 
-        $this->assertNotInstanceOf(Pets::class, $pet);
+        $this->assertNull($pet);
+    }
+
+    /**
+     * @depends testGetConnection
+     * @param Database $db
+     */
+    public function testFindBy(Bow\Database\Database $db)
+    {
+        $pet = Pets::findBy('id', 1);
+
+        $this->assertNotEquals($pet->count(), 0);
+    }
+
+    /**
+     * @depends testGetConnection
+     * @param Database $db
+     */
+    public function testFindByEmpty(Bow\Database\Database $db)
+    {
+        $pet = Pets::findBy('id', 100);
+
+        $this->assertEquals($pet->count(), 0);
     }
 }

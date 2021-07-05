@@ -1,4 +1,5 @@
 <?php
+
 namespace Bow\Database;
 
 use Bow\Database\Barry\Model;
@@ -32,19 +33,19 @@ class Collection extends \Bow\Support\Collection
      */
     public function toJson($option = 0)
     {
-        return  json_encode($this->toArray(), $option = 0);
+        return json_encode($this->toArray(), $option = 0);
     }
 
     /**
-     * Permet de supprimer tout les enrégistrement séléctionnés
+     * Allows you to delete all the selected recordings
+     *
+     * @return void
      */
     public function dropAll()
     {
-        $this->each(
-            function (Model $model) {
-                $model->delete();
-            }
-        );
+        $this->each(function (Model $model) {
+            $model->delete();
+        });
     }
 
     /**

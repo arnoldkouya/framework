@@ -1,4 +1,5 @@
 <?php
+
 namespace Bow\Translate;
 
 use Bow\Support\Arraydotify;
@@ -6,16 +7,22 @@ use Bow\Support\Arraydotify;
 class Translator
 {
     /**
+     * The define langue
+     *
      * @var string
      */
     private static $lang;
 
     /**
+     * The lang directory
+     *
      * @var string
      */
     private static $directory;
 
     /**
+     * The Translator instance
+     *
      * @var Translator
      */
     private static $instance;
@@ -26,9 +33,18 @@ class Translator
      * @param string $lang
      * @param string $directory
      */
-    public function __construct($lang, $directory)
+    public function __construct($lang, $directory, $auto_detected = false)
     {
         static::$lang = $lang;
+        
+        if ($auto_detected) {
+            static::$lang = strtolower(client_locale());
+
+            if (is_null(static::$lang)) {
+                static::$lang = $lang;
+            }
+        }
+
         static::$directory = $directory;
     }
 
@@ -37,6 +53,7 @@ class Translator
      *
      * @param string $lang
      * @param string $directory
+     *
      * @return Translator
      */
     public static function configure($lang, $directory)
@@ -59,17 +76,33 @@ class Translator
     }
 
     /**
-     * Permet de faire la tranduction
+     * Check the locale
+     *
+     * @param string $locale
+     *
+     * @return bool
+     */
+    public static function isLocale($locale)
+    {
+        return static::$lang == $locale;
+    }
+
+    /**
+     * Allows translation
      *
      * @param  string $key
      * @param  array  $data
      * @param  bool   $plurial
+     *
      * @return string
      */
-    public static function make($key, array $data = [], $plurial = false)
+    public static function translate($key, array $data = [], $plurial = false)
     {
         if (!is_string($key)) {
-            throw new \InvalidArgumentException('La premier parametre doit etre une chaine de carractère.', E_USER_ERROR);
+            throw new \InvalidArgumentException(
+                'The first parameter must be a string.',
+                E_USER_ERROR
+            );
         }
 
         $map = explode('.', $key);
@@ -85,10 +118,16 @@ class Translator
             return $key;
         }
 
+        $contents = require $translation_filename;
+        
+        if (!is_array($contents)) {
+            return $key;
+        }
+
         array_shift($map);
+        
         $key = implode('.', $map);
 
-        $contents = require $translation_filename;
         $translations = Arraydotify::make($contents);
 
         if (!isset($translations[$key])) {
@@ -99,11 +138,11 @@ class Translator
         $parts = explode('|', $value);
 
         if ($plurial === true) {
-            if (isset($parts[1])) {
-                $value = $parts[1];
-            } else {
+            if (!isset($parts[1])) {
                 return $key;
             }
+
+            $value = $parts[1];
         } else {
             $value = $parts[0];
         }
@@ -112,27 +151,28 @@ class Translator
     }
 
     /**
+     * Make singleton translation
      *
-     *
-     * @param $key
+     * @param string $key
      * @param array $data
+     *
      * @return string
      */
     public static function single($key, array $data = [])
     {
-        return static::make($key, $data);
+        return static::translate($key, $data);
     }
 
     /**
-     *
+     * Make plurial translation
      *
      * @param $key
      * @param array $data
      * @return string
      */
-    public static function pluiral($key, array $data = [])
+    public static function plurial($key, array $data = [])
     {
-        return static::make($key, $data, true);
+        return static::translate($key, $data, true);
     }
 
     /**
@@ -145,10 +185,30 @@ class Translator
     private static function format($str, array $values = [])
     {
         foreach ($values as $key => $value) {
-            $str = preg_replace('/\{\{\s*'.$key.'\s*\}\}/', $value, $str);
+            $str = preg_replace('/{\s*'.$key.'\s*\}/', $value, $str);
         }
 
         return $str;
+    }
+
+    /**
+     * Update locale
+     *
+     * @param $locale
+     */
+    public static function setLocale($locale)
+    {
+        static::$lang = $locale;
+    }
+
+    /**
+     * Get locale
+     *
+     * @return string
+     */
+    public static function getLocale()
+    {
+        return static::$lang;
     }
 
     /**
@@ -160,10 +220,10 @@ class Translator
      */
     public function __call($name, $arguments)
     {
-        if (method_exists(static::class, $name)) {
-            return call_user_func_array([static::class, $name], $arguments);
+        if (method_exists(static::$instance, $name)) {
+            return call_user_func_array([static::$instance, $name], $arguments);
         }
 
-        throw new \BadMethodCallException('undefined method '.$name);
+        throw new \BadMethodCallException('Undefined method '.$name);
     }
 }

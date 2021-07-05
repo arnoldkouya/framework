@@ -1,14 +1,19 @@
 <?php
+
 namespace Bow\Event;
 
 class Listener
 {
     /**
-     * @var Callable
+     * The callable
+     *
+     * @var callable
      */
     private $callable;
 
     /**
+     * The priority index
+     *
      * @var int
      */
     private $priority = 0;
@@ -27,18 +32,27 @@ class Listener
     }
 
     /**
-     * Permet de lance la fonction du listener
+     * Launch the listener function
      *
      * @param  array $data
      * @return mixed
      */
     public function call(array $data)
     {
-        return call_user_func_array($this->callable, $data);
+        $callable = $this->callable;
+
+        if (is_string($this->callable) && class_exists($this->callable, true)) {
+            $instance = app($this->callable);
+            if ($instance instanceof EventListerner) {
+                $callable = [$instance, 'process'];
+            }
+        }
+
+        return call_user_func_array($callable, $data);
     }
 
     /**
-     * Permet de retourne le type de l'action
+     * Returns the type of action
      *
      * @return string
      */
@@ -48,7 +62,7 @@ class Listener
     }
 
     /**
-     * Permet de retourne l'action à lancer
+     * Returns the action to launch
      *
      * @return mixed
      */
@@ -58,7 +72,7 @@ class Listener
     }
 
     /**
-     * Permet de récuperer la priorité du listerner
+     * Retrieves the priority of the listener
      *
      * @return mixed
      */

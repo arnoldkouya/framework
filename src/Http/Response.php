@@ -1,23 +1,30 @@
 <?php
+
 namespace Bow\Http;
 
+use Bow\Contracts\ResponseInterface;
 use Bow\View\View;
-use Bow\Exception\ResponseException;
 
-class Response
+class Response implements ResponseInterface
 {
     /**
-     * Liste de code http valide pour l'application
-     * Sauf que l'utilisateur poura lui même rédéfinir
-     * ces codes s'il utilise la fonction `header` de php
+     * Valid http code list for the app Except that
+     * the user can himself redefine these codes
+     * if it uses the `header` function of php
      */
     private static $header = [
+        100 => 'Continue',
+        101 => 'Switching Protocols',
+        102 => 'Processing',
         200 => 'OK',
         201 => 'Created',
         202 => 'Accepted',
         204 => 'No Content',
         205 => 'Reset Content',
         206 => 'Partial Content',
+        207 => 'Multi-Status',
+        208 => 'Already Reported',
+        226 => 'IM Used',
         300 => 'Multipe Choices',
         301 => 'Moved Permanently',
         302 => 'Found',
@@ -25,6 +32,7 @@ class Response
         304 => 'Not Modified',
         305 => 'Use Proxy',
         307 => 'Temporary Redirect',
+        308 => 'Permanent Redirect',
         400 => 'Bad Request',
         401 => 'Unauthorized',
         402 => 'Payment Required',
@@ -43,6 +51,18 @@ class Response
         415 => 'Unsupport Media',
         416 => 'Range Not Statisfiable',
         417 => 'Expectation Failed',
+        418 => 'I\'m a teapot',
+        421 => 'Misdirected Request',
+        422 => 'Unprocessable Entity',
+        423 => 'Locked',
+        424 => 'Failed Dependency',
+        426 => 'Upgrade Required',
+        428 => 'Precondition Required',
+        429 => 'Too Many Requests',
+        431 => 'Request Header Fields Too Large',
+        444 => 'Connection Closed Without Response',
+        451 => 'Unavailable For Legal Reasons',
+        499 => 'Client Closed Request',
         500 => 'Internal Server Error',
         501 => 'Not Implemented',
         502 => 'Bad Gateway',
@@ -52,14 +72,78 @@ class Response
     ];
 
     /**
+     * The Response instamce
+     *
      * @var Response
      */
     private static $instance;
 
     /**
+     * The Response content
+     *
+     * @var string
+     */
+    private $content;
+
+    /**
+     * The Response code
+     *
+     * @var int
+     */
+    private $code;
+
+    /**
+     * The added headers
+     *
+     * @var array
+     */
+    private $headers = [];
+
+    /**
+     * Downloadable flag
+     *
+     * @var bool
+     */
+    private $download = false;
+
+    /**
+     * The downloadable filenme
+     *
+     * @var string
+     */
+    private $download_filename;
+
+    /**
+     * The override the respons
+     *
+     * @var bool
+     */
+    private $override = false;
+
+    /**
+     * Response constructor.
+     *
+     * @param string $content
+     * @param int $code
+     * @param array $headers
+     */
+    private function __construct($content = '', $code = 200, array $headers = [])
+    {
+        $this->content = $content;
+
+        $this->code = $code;
+
+        $this->headers = $headers;
+
+        $this->override = false;
+    }
+
+    /**
+     * Get response
+     *
      * @return Response
      */
-    public static function singleton()
+    public static function getInstance()
     {
         if (is_null(static::$instance)) {
             static::$instance = new static();
@@ -69,37 +153,93 @@ class Response
     }
 
     /**
-     * Modifie les entêtes http
+     * Get response message
      *
-     * @param  string $key   Le nom de
-     *                       l'entête
-     * @param  string $value La nouvelle valeur a assigne à l'entête
-     * @return self
+     * @return string
      */
-    public function addHeader($key, $value)
+    public function getContent()
     {
-        header($key.': '.$value);
+        return $this->content;
+    }
+
+    /**
+     * Get status code
+     *
+     * @return int
+     */
+    public function getCode()
+    {
+        return $this->code;
+    }
+
+    /**
+     * Get headers
+     *
+     * @return array
+     */
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    /**
+     * Get response message
+     *
+     * @param string $content
+     * @return Response
+     */
+    public function setContent($content)
+    {
+        $this->content = $content;
 
         return $this;
     }
 
     /**
-     * Télécharger le fichier donnée en argument
+     * Get headers
+     *
+     * @param array $headers
+     * @return Response
+     */
+    public function withHeaders(array $headers)
+    {
+        $this->headers = $headers;
+
+        return $this;
+    }
+
+    /**
+     * Modify http headers
+     *
+     * @param  string $key
+     * @param  string $value
+     * @return self
+     */
+    public function addHeader($key, $value)
+    {
+        $this->headers[$key] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Download the given file as an argument
      *
      * @param string $file
-     * @param null   $name
+     * @param null   $filename
      * @param array  $headers
      * @param string $disposition
+     * @return string
      */
-    public function download($file, $name = null, array $headers = array(), $disposition = 'attachment')
+    public function download($file, $filename = null, array $headers = [], $disposition = 'attachment')
     {
         $type = mime_content_type($file);
 
-        if ($name == null) {
-            $name = basename($file);
+        if ($filename == null) {
+            $filename = basename($file);
         }
 
-        $this->addHeader('Content-Disposition', $disposition.'; filename='.$name);
+        $this->addHeader('Content-Disposition', $disposition.'; filename='.$filename);
 
         $this->addHeader('Content-Type', $type);
 
@@ -111,41 +251,61 @@ class Response
             $this->addHeader($key, $value);
         }
 
-        readfile($file);
+        $this->download_filename = $file;
 
-        die;
+        $this->download = true;
+
+        return $this->buildHttpResponse();
     }
 
     /**
-     * Modifie les entétes http
+     * Modify http headers
      *
-     * @param  int  $code     Le code de la réponse
-     *                        HTTP
-     * @param  bool $override Permet de remplacer l'entête ecrite précédement quand la valeur est a 'true'
+     * @param  int $code
      * @return mixed
      */
-    public function statusCode($code, $override = false)
+    public function status($code)
     {
-        $r = true;
-
         if (in_array((int) $code, array_keys(self::$header), true)) {
-            header('HTTP/1.1 '. $code .' '. self::$header[$code], $override, $code);
-        } else {
-            $r = false;
+            $this->code = $code;
+
+            @header('HTTP/1.1 '. $code .' '. self::$header[$code], $this->override, $code);
         }
 
-        return $r;
+        return $this;
     }
 
     /**
-     * Réponse de type JSON
+     * Build HTTP Response
      *
-     * @param  mixed $data    Les données à transformer en
-     *                        JSON
-     * @param  int   $code    Le code de la
-     *                        réponse HTTP
+     * @return string
+     */
+    private function buildHttpResponse()
+    {
+        $status_text = static::$header[$this->code] ?? 'Unkdown';
+
+        @header('HTTP/1.1 '. $this->code .' '. $status_text, $this->override, $this->code);
+
+        foreach ($this->getHeaders() as $key => $header) {
+            header(sprintf('%s: %s', $key, $header));
+        }
+
+        if ($this->download) {
+            readfile($this->download_filename);
+
+            die;
+        }
+
+        return $this->getContent();
+    }
+
+    /**
+     * JSON response
+     *
+     * @param  mixed $data
+     * @param  int   $code
      * @param  array $headers
-     * @return bool
+     * @return string
      */
     public function json($data, $code = 200, array $headers = [])
     {
@@ -155,149 +315,78 @@ class Response
             $this->addHeader($key, $value);
         }
 
-        $this->statusCode($code);
+        $this->content = json_encode($data);
 
-        return $this->send(json_encode($data), false);
+        $this->code = $code;
+
+        return $this->buildHttpResponse();
     }
 
     /**
-     * Equivalant à un echo, sauf qu'il termine l'application quand $stop = true
+     * Equivalent to an echo, except that it ends the application
      *
-     * @param  string|array|\StdClass $data
-     * @param  bool|false             $stop
-     * @return mixed
+     * @param  string|array|\stdClass $data
+     * @param  int  $code
+     * @param  array  $headers
+     * @return string
      */
-    public function send($data, $stop = false)
+    public function send($data, $code = 200, array $headers = [])
     {
-        if (is_array($data) || ($data instanceof \stdClass)) {
-            $data = json_encode($data);
+        if (is_array($data) || $data instanceof \stdClass || is_object($data)) {
+            return $this->json($data, $code, $headers);
         }
 
-        echo $data;
+        $this->code = $code;
 
-        if (!$stop) {
-            return true;
+        foreach ($headers as $key => $value) {
+            $this->addHeader($key, $value);
         }
 
-        die();
+        $this->content = $data;
+
+        return $this->buildHttpResponse();
     }
 
     /**
-     * Permet de faire le rendu d'une vue.
+     * Make view rendering
      *
      * @param  $template
-     * @param  array    $data
+     * @param  array $data
+     * @param  int $code
+     * @param  array $headers
      * @return string
      * @throws
      */
-    public function view($template, $data = [])
+    public function render($template, $data = [], $code = 200, array $headers = [])
     {
-        return View::make($template, $data);
+        $this->code = $code;
+
+        $this->withHeaders($headers);
+
+        $view = View::parse($template, $data);
+
+        $this->content = $view->sendContent();
+
+        return $this->buildHttpResponse();
     }
 
     /**
-     * @param $allow
-     * @param $excepted
-     * @return $this
-     */
-    private function accessControl($allow, $excepted)
-    {
-        if ($excepted === null) {
-            $excepted = '*';
-        }
-
-        $this->addHeader($allow, $excepted);
-
-        return $this;
-    }
-
-    /**
-     * Active Access-control-Allow-Origin
+     * Get accessControl instance
      *
-     * @param  array $excepted [optional]
-     * @return Response
-     * @throws
+     * @return AccessControl
      */
-    public function accessControlAllowOrigin(array $excepted)
+    public function serverAccessControl()
     {
-        if (!is_array($excepted)) {
-            throw new \InvalidArgumentException('Attend un tableau.' . gettype($excepted) . ' donner.', E_USER_ERROR);
-        }
-
-        return $this->accessControl('Access-Control-Allow-Origin', implode(', ', $excepted));
+        return new ServerAccessControl($this);
     }
 
     /**
-     * Active Access-control-Allow-Methods
-     *
-     * @param  array $excepted [optional] $excepted
-     * @return Response
-     * @throws ResponseException
+     * @inheritdoc
      */
-    public function accessControlAllowMethods(array $excepted)
+    public function sendContent()
     {
-        if (count($excepted) == 0) {
-            throw new ResponseException('Le tableau est vide.' . gettype($excepted) . ' donner.', E_USER_ERROR);
-        }
+        echo $this->buildHttpResponse();
 
-        return $this->accessControl('Access-Control-Allow-Methods', implode(', ', $excepted));
-    }
-
-    /**
-     * Active Access-control-Allow-Headers
-     *
-     * @param  array $excepted [optional] $excepted
-     * @return Response
-     * @throws ResponseException
-     */
-    public function accessControlAllowHeaders(array $excepted)
-    {
-        if (count($excepted) == 0) {
-            throw new ResponseException('Le tableau est vide.' . gettype($excepted) . ' donner.', E_USER_ERROR);
-        }
-
-        return $this->accessControl('Access-Control-Allow-Headers', implode(', ', $excepted));
-    }
-
-    /**
-     * Active Access-control-Allow-Credentials
-     *
-     * @return Response
-     */
-    public function accessControlAllowCredentials()
-    {
-        return $this->accessControl('Access-Control-Allow-Credentials', 'true');
-    }
-
-    /**
-     * Active Access-control-Max-Age
-     *
-     * @param  string $excepted [optional] $excepted
-     * @return Response
-     * @throws ResponseException
-     */
-    public function accessControlMaxAge($excepted)
-    {
-        if (!is_numeric($excepted)) {
-            throw new ResponseException('La paramtere doit être un entier: ' . gettype($excepted) . ' donner.', E_USER_ERROR);
-        }
-
-        return $this->accessControl('Access-Control-Max-Age', $excepted);
-    }
-
-    /**
-     * Active Access-control-Expose-Headers
-     *
-     * @param  array $excepted [optional] $excepted
-     * @return Response
-     * @throws ResponseException
-     */
-    public function accessControlExposeHeaders(array $excepted)
-    {
-        if (count($excepted) == 0) {
-            throw new ResponseException('Le tableau est vide.' . gettype($excepted) . ' donner.', E_USER_ERROR);
-        }
-
-        return $this->accessControl('Access-Control-Expose-Headers', implode(', ', $excepted));
+        return;
     }
 }

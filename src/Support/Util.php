@@ -1,27 +1,22 @@
 <?php
+
 namespace Bow\Support;
 
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\CliDumper;
 use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 
-/**
- * Class Util
- *
- * @author  Franck Dakia <dakiafranck@gmail.com>
- * @package Bow\Support
- */
 class Util
 {
     /**
-     * définir le type de retoure chariot CRLF ou LF
+     * Define the CRLF or LF carriage return type
      *
      * @var string
      */
     private static $sep;
 
     /**
-     * Lance un var_dump sur les variables passées en paramètre.
+     * Run a var_dump on the variables passed in parameter.
      *
      * @return void
      */
@@ -34,7 +29,9 @@ class Util
         $dumper = 'cli' === PHP_SAPI ? new CliDumper() : new HtmlDumper();
 
         $dumper->setStyles([
-            'default' => 'background-color:#fff; color:#FF8400; line-height:1.2em; font:12px Menlo, Monaco, Consolas, monospace; word-wrap: break-word; white-space: pre-wrap; position:relative; z-index:99999; word-break: normal',
+            'default' => 'background-color:#fff; color:#FF8400; line-height:1.2em; 
+                font:12px Menlo, Monaco, Consolas, monospace; word-wrap: break-word; 
+                white-space: pre-wrap; position:relative; z-index:99999; word-break: normal',
             'num' => 'font-weight:bold; color:#1299DA',
             'const' => 'font-weight:bold',
             'str' => 'color:#111111',
@@ -62,20 +59,21 @@ class Util
     }
 
     /**
-     * Lance un var_dump sur les variables passées en paramètre.
+     * Run a var_dump on the variables passed in parameter.
      *
      * @param  string $var
+     *
      * @return void
      */
     public static function dd($var)
     {
-        call_user_func_array([static::class, 'dump'], func_get_args());
+        call_user_func_array([static::class, 'debug'], func_get_args());
 
         die();
     }
 
     /**
-     * sep, séparateur \r\n or \n
+     * sep, separator \r\n or \n
      *
      * @return string
      */
@@ -96,7 +94,7 @@ class Util
 
 
     /**
-     * rangeField, fonction permettant de sécuriser les données.
+     * Function to secure the data.
      *
      * @param array $data, les données à sécuriser
      *
@@ -104,15 +102,12 @@ class Util
      */
     public static function rangeField($data)
     {
-        /**
-         * Construction d'une chaine de format:
-         * key1 = value1, key2 = value2[, keyN = valueN]
-         * Utile pour binder une réquête INSERT|UPDATE|SELECT|DELETE en mode préparer:
-         */
         $field = '';
         $i = 0;
+
         foreach ($data as $key => $value) {
             $field .= ($i > 0 ? ', ' : '') . '`'.$key . '` = ' . $value;
+
             $i++;
         }
 
@@ -120,7 +115,7 @@ class Util
     }
 
     /**
-     * Formateur de donnée. key => :value
+     * Data trainer. key => :value
      *
      * @param array $data
      * @param bool  $byKey
@@ -130,6 +125,7 @@ class Util
     public static function add2points(array $data, $byKey = false)
     {
         $resultat = [];
+
         if ($byKey == true) {
             foreach ($data as $key => $value) {
                 if (is_string($value)) {
@@ -143,6 +139,7 @@ class Util
                 $resultat[$value] = ':' . $value;
             }
         }
+        
         return $resultat;
     }
 }

@@ -1,17 +1,22 @@
 <?php
+
 namespace Bow\View\Engine;
 
-use Bow\Config\Config;
+use Bow\Configuration\Loader;
 use Bow\View\EngineAbstract;
 
 class TwigEngine extends EngineAbstract
 {
     /**
+     * The template engine instance
+     *
      * @var \Twig_Loader_Filesystem
      */
     private $template;
 
     /**
+     * The engine name
+     *
      * @var string
      */
     protected $name = 'twig';
@@ -19,44 +24,49 @@ class TwigEngine extends EngineAbstract
     /**
      * TwigEngine constructor.
      *
-     * @param Config $config
+     * @param Loader $config
+     *
+     * @return void
      */
-    public function __construct(Config $config)
+    public function __construct(Loader $config)
     {
         $this->config = $config;
 
         $loader = new \Twig_Loader_Filesystem($config['view.path']);
 
+        $aditionnals = $config['view.aditionnal_options'];
+
         $env = [
-            'auto_reload' => $config['view.auto_reload_cache'],
+            'auto_reload' => true,
             'debug' => true,
             'cache' => $config['view.cache']
         ];
 
+        if (is_array($aditionnals)) {
+            foreach ($aditionnals as $key => $aditionnal) {
+                $env[$key] = $aditionnal;
+            }
+        }
+
         $this->template = new \Twig_Environment($loader, $env);
 
-        /**
-         * - Ajout de variable globale
-         * dans le cadre de l'utilisation de Twig
-         */
+        // Add variable in global scope in the Twig use case
         $this->template->addGlobal('_public', $config['app.static']);
 
         $this->template->addGlobal('_root', $config['app.root']);
 
-        /**
-         * - Ajout de fonction global
-         *  dans le cadre de l'utilisation de Twig
-         */
+        // Add function in global scope in Twig use case
         foreach (EngineAbstract::HELPERS as $helper) {
-            $this->template->addFunction(new \Twig_SimpleFunction($helper, $helper));
+            $this->template->addFunction(
+                new \Twig_SimpleFunction($helper, $helper)
+            );
         }
 
         return $this->template;
     }
 
     /**
-     * @inheritDoc
-     * @throws
+     * {@inheritdoc}
      */
     public function render($filename, array $data = [])
     {
@@ -66,6 +76,8 @@ class TwigEngine extends EngineAbstract
     }
 
     /**
+     * The get engine instance
+     *
      * @return \Twig_Environment|\Twig_Loader_Filesystem
      */
     public function getTemplate()

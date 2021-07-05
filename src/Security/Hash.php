@@ -5,26 +5,33 @@ namespace Bow\Security;
 class Hash
 {
     /**
-     * Permet de hasher une value et quand le hash a échoué
-     * elle rétourne false.
+     * Allows to have a value and when the hash has failed it returns false.
      *
      * @param  string $value
-     * @param  int    $cost
      * @return bool|string
      */
-    public static function make($value, $cost = 10)
+    public static function create($value)
     {
-        return password_hash(
-            $value,
-            PASSWORD_BCRYPT,
-            [
-            'cast' => $cost
-            ]
-        );
+        [$hash_method, $options] = static::getHashConfig();
+
+        return password_hash($value, $hash_method, $options);
     }
 
     /**
-     * Permet de verifier le hash par apport a une value
+     * Allows to have a value and when the hash has failed it returns false.
+     *
+     * @param  string $value
+     * @return bool|string
+     */
+    public static function make($value)
+    {
+        [$hash_method, $options] = static::getHashConfig();
+        
+        return password_hash($value, $hash_method, $options);
+    }
+
+    /**
+     * Allows you to check the hash by adding a value
      *
      * @param  string $value
      * @param  string $hash
@@ -40,20 +47,32 @@ class Hash
     }
 
     /**
-     * Permet de rehacher une value.
+     * Allows you to rehash a value.
      *
      * @param  $hash
-     * @param  int  $cost
      * @return bool
      */
-    public function needsRehash($hash, $cost = 10)
+    public function needsRehash($hash)
     {
-        return password_needs_rehash(
-            $hash,
-            PASSWORD_BCRYPT,
-            [
-            'cost' => $cost,
-            ]
-        );
+        [$hash_method, $options] = static::getHashConfig();
+
+        return password_needs_rehash($hash, $hash_method, $options);
+    }
+
+    /**
+     * Get the hash configuration
+     *
+     * @return array
+     */
+    protected static function getHashConfig()
+    {
+        $hash_method = config('security.hash_method');
+        $options = config('security.hash_options');
+
+        if (is_null($hash_method) || $hash_method == PASSWORD_BCRYPT) {
+            $hash_method = PASSWORD_BCRYPT;
+        }
+
+        return [$hash_method, $options];
     }
 }

@@ -1,19 +1,24 @@
 <?php
+
 namespace Bow\Database\Connection\Adapter;
 
-use PDO;
-use Bow\Support\Str;
 use Bow\Database\Connection\AbstractConnection;
+use Bow\Support\Str;
+use PDO;
 
 class MysqlAdapter extends AbstractConnection
 {
     /**
+     * The connexion nane
+     *
      * @var string
      */
     protected $name = 'mysql';
 
     /**
-     * Port par defaut
+     * Default PORT
+     *
+     * @var int
      */
     const PORT = 3306;
 
@@ -22,18 +27,21 @@ class MysqlAdapter extends AbstractConnection
      *
      * @param array $config
      */
-    public function __construct($config)
+    public function __construct(array $config)
     {
         $this->config = $config;
+
         $this->connection();
     }
 
     /**
-     * @inheritdoc
+     * Make connexion
+     *
+     * @return void
      */
     public function connection()
     {
-        // Construction de la dsn
+        // Build of the mysql dsn
         if (isset($this->config['socket']) && !is_null($this->config['socket']) && !empty($this->config['socket'])) {
             $hostname = $this->config['socket'];
         } else {
@@ -50,7 +58,7 @@ class MysqlAdapter extends AbstractConnection
             }
         }
 
-        // Formatage des paramètres de connection
+        // Formatting connection parameters
         $host  = "mysql:host=".$hostname.$port;
 
         $database = "dbname=".$this->config['database'];
@@ -59,7 +67,7 @@ class MysqlAdapter extends AbstractConnection
 
         $password = $this->config["password"];
 
-        // Configuration suppelement coté PDO
+        // Configuration extra PDO side
         $options = [
             PDO::ATTR_DEFAULT_FETCH_MODE => isset($this->config['fetch']) ? $this->config['fetch'] : $this->fetch,
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

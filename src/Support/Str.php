@@ -1,12 +1,9 @@
 <?php
+
 namespace Bow\Support;
 
-/**
- * Class Str
- *
- * @author  Franck Dakia <dakiafranck@gmail.com>
- * @package Bow\Support
- */
+use ErrorException;
+
 class Str
 {
     /**
@@ -67,27 +64,46 @@ class Str
     /**
      * Snake case
      *
-     * @param  $value
+     * @param  string $str
      * @param  string $delimiter
      * @return mixed
      */
-    public static function snake($value, $delimiter = '_')
+    public static function snake($str, $delimiter = '_')
     {
-        $value = preg_replace('/\s+/u', $delimiter, $value);
+        $str = preg_replace('/\s+/u', $delimiter, $str);
 
-        $value = static::lower(preg_replace_callback('/([A-Z])/u', function ($math) use ($delimiter) {
+        $str = static::lower(preg_replace_callback('/([A-Z])/u', function ($math) use ($delimiter) {
             return $delimiter.static::lower($math[1]);
-        }, $value));
+        }, $str));
 
-        return preg_replace('/'.$delimiter.'{2,}/', $delimiter, $value);
+        return trim(preg_replace('/'.$delimiter.'{2,}/', $delimiter, $str), $delimiter);
+    }
+
+    /**
+     * Get str plurial
+     *
+     * @param string $str
+     * @return string
+     */
+    public static function plurial($str)
+    {
+        if (preg_match('/y$/', $str)) {
+            $str = static::slice($str, 0, static::len($str) - 1);
+
+            return $str.'ies';
+        }
+
+        preg_match('/s$/', $str) ?: $str = $str.'s';
+
+        return $str;
     }
 
     /**
      * slice
      *
      * @param  string $str
-     * @param  $start
-     * @param  null   $end
+     * @param  string $start
+     * @param  string|null $end
      * @return string
      */
     public static function slice($str, $start, $end = null)
@@ -112,8 +128,7 @@ class Str
      *
      * @param string $pattern
      * @param string $str
-     * @param null   $limit
-     *
+     * @param int|null $limit
      * @return array
      */
     public static function split($pattern, $str, $limit = null)
@@ -126,8 +141,7 @@ class Str
      *
      * @param string $search
      * @param string $string
-     * @param int    $offset
-     *
+     * @param int $offset
      * @return int
      */
     public static function pos($search, $string, $offset = 0)
@@ -140,7 +154,6 @@ class Str
      *
      * @param string $search
      * @param string $str
-     *
      * @return bool
      */
     public static function contains($search, $str)
@@ -155,10 +168,9 @@ class Str
     /**
      * replace
      *
-     * @param $pattern
-     * @param $replaceBy
-     * @param $str
-     *
+     * @param string $pattern
+     * @param string $replaceBy
+     * @param string $str
      * @return string
      */
     public static function replace($pattern, $replaceBy, $str)
@@ -169,8 +181,7 @@ class Str
     /**
      * capitalize
      *
-     * @param $str
-     *
+     * @param string $str
      * @return string
      */
     public static function capitalize($str)
@@ -179,10 +190,9 @@ class Str
     }
 
     /**
-     * len, retourne la taille d'une chaine.
+     * Len
      *
-     * @param $str
-     *
+     * @param string $str
      * @return int
      */
     public static function len($str)
@@ -191,11 +201,10 @@ class Str
     }
 
     /**
-     * wordify
+     * Wordify
      *
-     * @param $str
-     * @param $sep
-     *
+     * @param string $str
+     * @param string $sep
      * @return array
      */
     public static function wordify($str, $sep = ' ')
@@ -204,11 +213,10 @@ class Str
     }
 
     /**
-     * repeat, réperte la chaine de caractère dans une nombre déterminé
+     * Lists the string of characters in a specified number
      *
-     * @param $str
-     * @param $number
-     *
+     * @param string $str
+     * @param string $number
      * @return string
      */
     public static function repeat($str, $number)
@@ -217,10 +225,9 @@ class Str
     }
 
     /**
-     * randomize
+     * Randomize
      *
      * @param int $size
-     *
      * @return string
      */
     public static function randomize($size = 16)
@@ -229,25 +236,28 @@ class Str
     }
 
     /**
-     * slugify créateur de slug en utilisant un chaine simple.
-     * eg: 'je suis un chaine de caractere' => 'je-suis-un-chaine-de-caractere'
+     * slugify slug creator using a simple chain.
+     * eg: 'I am a string of character' => 'i-am-a-chain-of-character'
      *
      * @param string $str
-     *
+     * @param string $delimiter
      * @return string
      */
-    public static function slugify($str)
+    public static function slugify($str, $delimiter = '-')
     {
-        $temp = preg_replace('/[^a-z0-9]/', '-', strtolower(trim(strip_tags($str))));
+        $temp = preg_replace(
+            '/[^a-z0-9]/',
+            $delimiter,
+            strtolower(trim(strip_tags($str)))
+        );
 
-        return preg_replace('/-{2,}/', '-', $temp);
+        return preg_replace('/-{2,}/', $delimiter, $temp);
     }
 
     /**
-     * unslugify créateur de slug en utilisant un chaine simple.
+     * unslugify, Lets you undo a slug
      *
      * @param string $str
-     *
      * @return string
      */
     public static function unSlugify($str)
@@ -256,9 +266,9 @@ class Str
     }
 
     /**
-     * Vérifier si le mail est un mail valide.
+     * Check if the email is a valid email.
      *
-     * eg: dakiafranck@gmail.com => true
+     * eg: example@email.com => true
      *
      * @param string $email
      * @return bool
@@ -275,94 +285,93 @@ class Str
     }
 
     /**
-     * Vérifie si la chaine est un domaine
+     * Check if the string is a domain
      *
      * eg: http://exemple.com => true
      * eg: http:/exemple.com => false
      *
      * @param string $domain
      * @return bool
-     *
-     * @throws \ErrorException
+     * @throws ErrorException
      */
     public static function isDomain($domain)
     {
         if (!is_string($domain)) {
-            throw new \ErrorException('Accept string ' . gettype($domain) . ' given');
+            throw new ErrorException('Accept string ' . gettype($domain) . ' given');
         }
 
-        return  (bool) preg_match('/^((https?|ftps?|ssl|url|git):\/\/)?[a-zA-Z0-9-_.]+\.[a-z]{2,6}$/', $domain);
+        return  (bool) preg_match(
+            '/^((https?|ftps?|ssl|url|git):\/\/)?[a-zA-Z0-9-_.]+\.[a-z]{2,6}$/',
+            $domain
+        );
     }
 
     /**
-     * Vérifie si la chaine est en alphanumeric
+     * Check if the string is in alphanumeric
      *
-     * @param string $str*
+     * @param string $str
      * @return bool
-     *
-     * @throws \ErrorException
+     * @throws ErrorException
      */
     public static function isAlphaNum($str)
     {
         if (!is_string($str)) {
-            throw new \ErrorException('Accept string ' . gettype($str) . ' given');
+            throw new ErrorException('Accept string ' . gettype($str) . ' given');
         }
 
         return (bool) preg_match('/^[a-zA-Z0-9]+$/', $str);
     }
 
     /**
-     * Vérifie si la chaine est en numeric
+     * Check if the string is in numeric
      *
      * @param string $str
      * @return bool
-     *
-     * @throws \ErrorException
+     * @throws ErrorException
      */
     public static function isNumeric($str)
     {
         if (!is_string($str)) {
-            throw new \ErrorException('Accept string ' . gettype($str) . ' given');
+            throw new ErrorException('Accept string ' . gettype($str) . ' given');
         }
 
         return  (bool) preg_match('/^[0-9]+(\.[0-9]+)?$/', $str);
     }
 
     /**
-     * Vérifie si la chaine est en alpha
+     * Check if the string is in alpha
      *
      * @param string $str
      * @return bool
-     *
-     * @throws \ErrorException
+     * @throws ErrorException
      */
     public static function isAlpha($str)
     {
         if (!is_string($str)) {
-            throw new \ErrorException('Accept string ' . gettype($str) . ' given');
+            throw new ErrorException('Accept string ' . gettype($str) . ' given');
         }
 
         return (bool) preg_match('/^[a-zA-Z]+$/', $str);
     }
 
     /**
-     * Vérifie si la chaine est en format slug
+     * Check if the string is in slug format
      *
      * @param string $str
-     * @throws \ErrorException
      * @return bool
+     * @throws ErrorException
      */
     public static function isSlug($str)
     {
         if (!is_string($str)) {
-            throw new \ErrorException('Accept string ' . gettype($str) . ' given');
+            throw new ErrorException('Accept string ' . gettype($str) . ' given');
         }
 
         return  (bool) preg_match('/^[a-z0-9-]+[a-z0-9]+$/', $str);
     }
 
     /**
-     * Vérifie si la chaine est en majiscule
+     * Check if the string is in uppercase
      *
      * @param  string $str
      * @return bool
@@ -373,7 +382,7 @@ class Str
     }
 
     /**
-     * Vérifie si la chaine est en miniscule
+     * Check if the string is lowercase
      *
      * @param  string $str
      * @return bool
@@ -384,11 +393,10 @@ class Str
     }
 
     /**
-     * Retourne le nombre caractère dans une chaine.
+     * Returns the number of characters in a string.
      *
      * @param string $pattern
      * @param string $str
-     *
      * @return int
      */
     public static function count($pattern, $str)
@@ -397,11 +405,10 @@ class Str
     }
 
     /**
-     * Retourne un nombre détermine de mots dans une chaine de caractère.
+     * Returns a determined number of words in a string.
      *
      * @param string $words
-     * @param int    $len
-     *
+     * @param int $len
      * @return string
      */
     public static function getWords($words, $len)
@@ -418,10 +425,9 @@ class Str
     }
 
     /**
-     * Retourne une chaine de caractère dont les mots sont mélangés.
+     * Returns a string of words whose words are mixed.
      *
      * @param string $words
-     *
      * @return string
      */
     public static function shuffleWords($words)
@@ -450,7 +456,9 @@ class Str
     }
 
     /**
-     * Permet de forcer l'encodage en utf-8
+     * Enables to force the encoding in utf-8
+     *
+     * @return void
      */
     public static function forceInUTF8()
     {

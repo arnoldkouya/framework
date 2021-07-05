@@ -1,31 +1,8 @@
-
 <?php
 
-namespace App\Services;
+namespace {baseNamespace}{namespace};
 
-use Bow\Config\Config;
-use Bow\Application\Services as BowService;
-
-class {className} extends BowService
+class {className}
 {
-    /**
-     * Permet de lancement de configuration du service
-     *
-     * @param Config $config
-     * @return void
-     */
-    public function make(Config \$config)
-    {
-        //
-    }
-
-    /**
-     * Permet de démarrer le serivce
-     *
-     * @return void
-     */
-    public function start()
-    {
-        //
-    }
+    // Do Something
 }

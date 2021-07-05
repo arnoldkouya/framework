@@ -2,38 +2,53 @@
 
 namespace Bow\Middleware;
 
-use Bow\Http\Input;
+use Bow\Http\Request;
+use Bow\Security\Exception\TokenMismatch;
 
 class CsrfMiddleware
 {
     /**
-     * Fonction de lancement du middleware.
+     * Launch function of the middleware.
      *
-     * @param  \Bow\Http\Request $request
-     * @param  callable          $next
+     * @param  Request $request
+     * @param  Callable $next
      * @return boolean
+     * @throws
      */
-    public function checker($request, callable $next)
+    public function process(Request $request, callable $next)
     {
-        if (!($request->isPost() || $request->isPut())) {
-            return $next();
+        foreach ($this->preventOn() as $url) {
+            if ($request->is($url)) {
+                return $next($request);
+            }
         }
 
         if ($request->isAjax()) {
             if ($request->getHeader('x-csrf-token') === session('_token')) {
-                return $next();
+                return $next($request);
             }
 
-            response()->statusCode(401);
-            return response()->send('unauthorize.');
+            response()->status(401);
+
+            throw new TokenMismatch('Token Mismatch');
         }
 
-        $input = new Input();
-
-        if ($input->get('_token', null) !== session('_token')) {
-            return response('Token Mismatch');
+        if ($request->get('_token') == $request->session()->get('_token')) {
+            return $next($request);
         }
 
-        return $next($request);
+        throw new TokenMismatch('Token Mismatch');
+    }
+
+    /**
+     * Prevent csrf action on urls
+     *
+     * @return array
+     */
+    public function preventOn()
+    {
+        return [
+
+        ];
     }
 }

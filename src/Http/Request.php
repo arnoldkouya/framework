@@ -2,68 +2,72 @@
 
 namespace Bow\Http;
 
-use Bow\Support\Str;
+use Bow\Auth\Authentication;
 use Bow\Session\Session;
 use Bow\Support\Collection;
+use Bow\Support\Str;
+use Bow\Validation\Validate;
+use Bow\Validation\Validator;
 
 class Request
 {
     /**
-     * Variable d'instance
+     * The Request instance
      *
      * @static self
      */
-    private static $instance = null;
+    private static $instance;
 
     /**
-     * Variable de paramètre issue de url définie par l'utilisateur
-     * e.g /users/:id . alors params serait params->id == une la value suivant /users/1
+     * All php instance
      *
-     * @var UrlParameter
+     * @var array
      */
-    public $param;
+    private $input;
 
     /**
-     * @var Input
+     * Request constructor
+     *
+     * @return mixed
      */
-    public static $input;
-
-    /**
-     * Constructeur
-     */
-    public function __construct()
+    private function __construct()
     {
-        static::$input = new Input();
+        if ($this->getHeader('content-type') == 'application/json') {
+            $data = json_decode(file_get_contents("php://input"), true);
+            $this->input = array_merge((array) $data, $_GET);
+        } else {
+            $data = [];
+            
+            if ($this->isPut()) {
+                parse_str(file_get_contents("php://input"), $data);
+            } elseif ($this->isPost()) {
+                $data = $_POST;
+            }
 
-        $this->param = new UrlParameter([]);
+            $this->input = array_merge($data, $_GET);
+        }
 
-        @Session::add('__bow.old', static::$input->all());
+        foreach ($this->input as $key => $value) {
+            if (!is_array($value) && strlen($value) == 0) {
+                $value = null;
+            }
+
+            $this->input[$key] = $value;
+        }
     }
 
     /**
-     * Singletion loader
+     * Singletons loader
      *
-     * @return null|self
+     * @return Request
      */
-    public static function singleton()
+    public static function getInstance()
     {
         if (static::$instance === null) {
             static::$instance = new static();
         }
 
         return static::$instance;
-    }
-
-    /**
-     * Get request value
-     *
-     * @param string $key
-     * @param null $default
-     * @return mixed
-     */
-    public function get($key, $default = null)
-    {
-        return static::$input->get($key, $default);
     }
 
     /**
@@ -74,7 +78,7 @@ class Request
      */
     public function has($key)
     {
-        return static::$input->has($key);
+        return isset($this->input[$key]);
     }
 
     /**
@@ -84,18 +88,20 @@ class Request
      */
     public function all()
     {
-        return static::$input->all();
+        return $this->input;
     }
 
     /**
-     * retourne uri envoyer par client.
+     * Get uri send by client.
      *
      * @return string
      */
-    public function uri()
+    public function path()
     {
-        if ($pos = strpos($_SERVER['REQUEST_URI'], '?')) {
-            $uri = substr($_SERVER['REQUEST_URI'], 0, $pos);
+        $position = strpos($_SERVER['REQUEST_URI'], '?');
+
+        if ($position) {
+            $uri = substr($_SERVER['REQUEST_URI'], 0, $position);
         } else {
             $uri = $_SERVER['REQUEST_URI'];
         }
@@ -104,7 +110,7 @@ class Request
     }
 
     /**
-     * retourne le nom host du serveur.
+     * Get the host name of the server.
      *
      * @return string
      */
@@ -114,41 +120,37 @@ class Request
     }
 
     /**
-     * retourne url envoyé par client.
+     * Get url sent by client.
      *
      * @return string
      */
     public function url()
     {
-        return $this->origin() . $this->uri();
+        return $this->origin().$this->path();
     }
 
     /**
-     * origin le nom du serveur + le scheme
+     * Origin the name of the server + the scheme
      *
      * @return string
      */
     public function origin()
     {
-        if (!isset($_SERVER['REQUEST_SCHEME'])) {
-            return 'http://' . $this->hostname();
-        }
-
         return $this->scheme().'://'.$this->hostname();
     }
 
     /**
-     * Request scheme
+     * Get request scheme
      *
      * @return string
      */
-    public function scheme()
+    private function scheme()
     {
-        return isset($_SERVER['REQUEST_SCHEME']) ? strtolower($_SERVER['REQUEST_SCHEME']) : 'http';
+        return strtolower($_SERVER['REQUEST_SCHEME'] ?? 'http');
     }
 
     /**
-     * retourne path envoyé par client.
+     * Get path sent by client.
      *
      * @return string
      */
@@ -158,19 +160,21 @@ class Request
     }
 
     /**
-     * Retourne la methode de la requete.
+     * Returns the method of the request.
      *
      * @return string
      */
     public function method()
     {
-        $method = isset($_SERVER['REQUEST_METHOD']) ? $_SERVER['REQUEST_METHOD'] : null;
+        $method = $_SERVER['REQUEST_METHOD'] ?? null;
 
-        if ($method == 'POST') {
-            if (array_key_exists('HTTP_X_HTTP_METHOD', $_SERVER)) {
-                if (in_array($_SERVER['HTTP_X_HTTP_METHOD'], ['PUT', 'DELETE'])) {
-                    $method = $_SERVER['HTTP_X_HTTP_METHOD'];
-                }
+        if ($method !== 'POST') {
+            return $method;
+        }
+
+        if (array_key_exists('HTTP_X_HTTP_METHOD', $_SERVER)) {
+            if (in_array($_SERVER['HTTP_X_HTTP_METHOD'], ['PUT', 'DELETE'])) {
+                $method = $_SERVER['HTTP_X_HTTP_METHOD'];
             }
         }
 
@@ -178,68 +182,52 @@ class Request
     }
 
     /**
-     * Si la réquête est de type POST
+     * Check if the query is POST
      *
      * @return bool
      */
     public function isPost()
     {
-        if ($this->method() == 'POST') {
-            return true;
-        }
-
-        return false;
+        return $this->method() == 'POST';
     }
 
     /**
-     * Si la réquête est de type GET
+     * Check if the query is of type GET
      *
      * @return bool
      */
     public function isGet()
     {
-        if ($this->method() == 'GET') {
-            return true;
-        }
-
-        return false;
+        return $this->method() == 'GET';
     }
 
     /**
-     * Si la réquête est de type PUT
+     * Check if the query is of type PUT
      *
      * @return bool
      */
     public function isPut()
     {
-        if ($this->method() == 'PUT' || static::$input->get('_method', null) == 'PUT') {
-            return true;
-        }
-
-        return false;
+        return $this->method() == 'PUT' || $this->get('_method') == 'PUT';
     }
 
     /**
-     * Si la réquête est de type DELETE
+     * Check if the query is DELETE
      *
      * @return bool
      */
     public function isDelete()
     {
-        if ($this->method() == 'DELETE' || static::$input->get('_method', null) == 'DELETE') {
-            return true;
-        }
-
-        return false;
+        return $this->method() == 'DELETE' || $this->get('_method') == 'DELETE';
     }
 
     /**
-     * Charge la factory pour le FILES
+     * Load the factory for FILES
      *
-     * @param  string $key
+     * @param string $key
      * @return UploadFile|Collection
      */
-    public static function file($key)
+    public function file($key)
     {
         if (!isset($_FILES[$key])) {
             return null;
@@ -250,20 +238,15 @@ class Request
         }
 
         $files = $_FILES[$key];
-
         $collect = [];
-
         foreach ($files['name'] as $key => $name) {
-            $file['name'] = $name;
-
-            $file['type'] = $files['type'][$key];
-
-            $file['size'] = $files['size'][$key];
-
-            $file['error'] = $files['error'][$key];
-
-            $file['tmp_name'] = $files['tmp_name'][$key];
-
+            $file = [
+                'name' => $name,
+                'type' => $files['type'][$key],
+                'size' => $files['size'][$key],
+                'error' => $files['error'][$key],
+                'tmp_name' => $files['tmp_name'][$key],
+            ];
             $collect[] = new UploadFile($file);
         }
 
@@ -271,89 +254,62 @@ class Request
     }
 
     /**
-     * Charge la factory pour le FILES
+     * Check if file exists
      *
-     * @return array
-     */
-    public static function files()
-    {
-        $files = [];
-
-        foreach ($_FILES as $key => $file) {
-            $files[$key] = static::file($key);
-        }
-
-        return $files;
-    }
-
-    /**
-     * @param mixed $key
+     * @param mixed $file
      * @return bool
      */
-    public static function hasFile($key)
+    public static function hasFile($file)
     {
-        return isset($_FILES[$key]);
+        return isset($_FILES[$file]);
     }
 
     /**
-     * Change le factory RequestData pour tout les entrés PHP (GET, FILES, POST)
-     *
-     * @param  string $key
-     * @return Input
-     */
-    public static function input($key = null)
-    {
-        if (!is_null($key)) {
-            return static::$input->get($key);
-        }
-
-        return static::$input;
-    }
-
-    /**
-     * Accès au donnée de la précédente requete
+     * Get previous request data
      *
      * @param  mixed $key
      * @return mixed
      */
-    public static function old($key)
+    public function old($key)
     {
-        $old = Session::get('__bow.old', []);
+        $old = Session::getInstance()->get('__bow.old', []);
 
-        return isset($old[$key]) ? $old[$key] : null;
+        return $old[$key] ?? null;
     }
 
     /**
-     * Vérifie si on n'est dans le cas d'un requête AJAX.
+     * Check if we are in the case of an AJAX request.
      *
      * @return boolean
      */
     public function isAjax()
     {
-        if (isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
-            $xhr_obj = Str::lower($_SERVER['HTTP_X_REQUESTED_WITH']);
+        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH'])) {
+            return false;
+        }
 
-            if ($xhr_obj == 'xmlhttprequest' || $xhr_obj == 'activexobject') {
-                return true;
-            }
+        $xhr_obj = Str::lower($_SERVER['HTTP_X_REQUESTED_WITH']);
+
+        if ($xhr_obj == 'xmlhttprequest' || $xhr_obj == 'activexobject') {
+            return true;
         }
 
         return false;
     }
 
     /**
-     * Vérifie si une url match avec le pattern
+     * Check if a url matches with the pattern
      *
      * @param  string $match Un regex
      * @return int
      */
     public function is($match)
     {
-        return preg_match('~' . $match . '~', $this->uri());
+        return preg_match('@'.$match.'@', $this->path());
     }
 
     /**
-     * clientAddress, L'address ip du client
+     * Get client address
      *
      * @return string
      */
@@ -363,7 +319,7 @@ class Request
     }
 
     /**
-     * clientPort, Retourne de port du client
+     * Get client port
      *
      * @return string
      */
@@ -373,53 +329,39 @@ class Request
     }
 
     /**
-     * Retourne la provenance de la requête courante.
+     * Get the source of the current request.
      *
      * @return string
      */
     public function referer()
     {
-        return isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '/';
+        return $_SERVER['HTTP_REFERER'] ?? '/';
     }
 
     /**
-     * retourne la langue de la requête.
+     * Get the request locale.
      *
-     * @return string|null
-     */
-    public function language()
-    {
-        return Str::slice($this->locale(), 0, 2);
-    }
-
-    /**
-     * retourne la locale de la requête.
-     *
-     * la locale c'est langue original du client
-     * e.g fr => locale = fr_FR // français de france
+     * The local is the original language of the client
+     * e.g fr => locale = fr_FR
      * e.g en => locale [ en_US, en_EN]
      *
      * @return string|null
      */
     public function locale()
     {
-        $local = '';
+        $accept_language = $this->getHeader('accept_language');
 
-        if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
-            $tmp = explode(';', $_SERVER['HTTP_ACCEPT_LANGUAGE'])[0];
+        $tmp = explode(';', $accept_language)[0];
 
-            preg_match('/^([a-z]+(?:-|_)?[a-z]+)/i', $tmp, $match);
+        preg_match('/^([a-z]+(?:-|_)?[a-z]+)/i', $tmp, $match);
 
-            $local = end($match);
-        }
-
-        return $local;
+        return end($match);
     }
 
     /**
-     * retourne la lang du naviagateur.
+     * Get request lang.
      *
-     * @return string|null
+     * @return string
      */
     public function lang()
     {
@@ -432,15 +374,35 @@ class Request
         return end($match);
     }
 
-
     /**
-     * le protocol de la requête.
+     * Get request protocol
      *
      * @return mixed
      */
     public function protocol()
     {
-        return $_SERVER['SERVER_PROTOCOL'];
+        return $this->scheme();
+    }
+
+    /**
+     * Check the protocol of the request
+     *
+     * @param string $protocol
+     * @return mixed
+     */
+    public function isProtocol($protocol)
+    {
+        return $this->scheme() == $protocol;
+    }
+
+    /**
+     * Check if the secure protocol
+     *
+     * @return mixed
+     */
+    public function isSecure()
+    {
+        return $this->isProtocol('https');
     }
 
     /**
@@ -465,7 +427,7 @@ class Request
     }
 
     /**
-     * Verifir si une entête existe.
+     * Check if a header exists.
      *
      * @param  string $key
      * @return bool
@@ -476,85 +438,117 @@ class Request
     }
 
     /**
-     * Permet de récupérer un paramètre définir dans la route.
+     * Get session information
+     *
+     * @return Session
+     */
+    public function session()
+    {
+        return session();
+    }
+
+    /**
+     * Get auth user information
+     *
+     * @param string|null $guard
+     * @return Authentication|null
+     */
+    public function user($guard = null)
+    {
+        return auth($guard)->user();
+    }
+
+    /**
+     * Get cookie
+     *
+     * @param string $property
+     * @return mixed
+     */
+    public function cookie($property = null)
+    {
+        return cookie($property);
+    }
+
+    /**
+     * Retrieve a value or a collection of values.
      *
      * @param  string $key
-     * @return string
+     * @param  mixed  $default
+     * @return mixed
      */
-    public function getParameter($key)
+    public function get($key, $default = null)
     {
-        return $this->param[$key];
+        $value = $this->input[$key] ?? $default;
+
+        if (is_callable($value)) {
+            return $value();
+        }
+
+        return $value;
     }
 
     /**
-     * @param array $parameter
-     */
-    public function _setUrlParameters(array $parameter)
-    {
-        $this->param = new UrlParameter($parameter);
-    }
-
-    /**
-     * Permet de récupérer les paramètres définir dans la route.
+     * Retrieves the values contained in the exception table
      *
-     * @return object
+     * @param array $exceptions
+     * @return array
      */
-    public function getParameters()
+    public function only($exceptions)
     {
-        return $this->param;
-    }
+        $data = [];
 
-    /**
-     * @param $property
-     * @return mixed
-     */
-    public static function session($property = null)
-    {
-        if (is_null($property)) {
-            return new Session();
+        if (! is_array($exceptions)) {
+            $exceptions = func_get_args();
         }
 
-        return Session::get($property);
-    }
-
-    /**
-     * @param string $url
-     * @return mixed
-     */
-    public static function redirect($url = null)
-    {
-        $redirect = new Redirect();
-
-        if (is_null($url)) {
-            return $redirect;
+        foreach ($exceptions as $exception) {
+            if (isset($this->input[$exception])) {
+                $data[$exception] = $this->input[$exception];
+            }
         }
 
-        return $redirect($url);
+        return $data;
     }
 
     /**
-     * @param $property
-     * @return mixed
+     * @inheritdoc
      */
-    public function __get($property)
+    public function ignore($ignores)
     {
-        return static::$input->get($property);
+        $data = $this->input;
+
+        if (! is_array($ignores)) {
+            $ignores = func_get_args();
+        }
+
+        foreach ($ignores as $ignore) {
+            if (isset($data[$ignore])) {
+                unset($data[$ignore]);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * Validate incoming data
+     *
+     * @param  array $rule
+     * @return Validate
+     */
+    public function validate(array $rule)
+    {
+        return Validator::make($this->input, $rule);
     }
 
     /**
      * __call
      *
-     * @param string $name
-     * @param array  $arguments
-     *
+     * @param $property
      * @return mixed
      */
-    public function __call($name, $arguments)
+    public function __get($property)
     {
-        if (!method_exists(static::class, $name)) {
-            throw new \RuntimeException('Method ' . $name . ' not exists');
-        }
-
-        return call_user_func_array([static::class, $name], $arguments);
+        return $this->get($property);
     }
 }

@@ -2,25 +2,32 @@
 
 namespace Bow\Test;
 
-use \Bow\Http\Cache;
+use \Bow\Cache\Cache;
 
 class CacheTest extends \PHPUnit\Framework\TestCase
 {
-    public function testCreateCache()
+    public function setUp()
     {
-        Cache::confirgure(__DIR__.'/data/cache/bow');
+        parent::setUp();
 
+        Cache::confirgure(__DIR__.'/data/cache/bow');
+    }
+
+
+
+    public function test_CreateCache()
+    {
         $r = Cache::add('name', 'Dakia');
 
         $this->assertEquals($r, true);
     }
 
-    public function testGetCache()
+    public function test_GetCache()
     {
         $this->assertEquals(Cache::get('name'), 'Dakia');
     }
 
-    public function testAddWithCallbackCache()
+    public function test_AddWithCallbackCache()
     {
         $r = Cache::add('lastname', function () {
             return 'Franck';
@@ -28,19 +35,19 @@ class CacheTest extends \PHPUnit\Framework\TestCase
 
         $r = $r && Cache::add('age', function () {
                 return 25;
-            }, 20000);
+        }, 20000);
 
         $this->assertEquals($r, true);
     }
 
-    public function testGetCallbackCache()
+    public function test_GetCallbackCache()
     {
         $this->assertEquals(Cache::get('lastname'), 'Franck');
 
         $this->assertEquals(Cache::get('age'), 25);
     }
 
-    public function testAddArrayCache()
+    public function test_AddArrayCache()
     {
         $r = Cache::add('address', [
             'tel' => "49929598",
@@ -51,7 +58,7 @@ class CacheTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($r, true);
     }
 
-    public function testGetArrayCache()
+    public function test_GetArrayCache()
     {
         $r = Cache::get('address');
 
@@ -66,7 +73,7 @@ class CacheTest extends \PHPUnit\Framework\TestCase
         $this->assertArrayHasKey('country', $r);
     }
 
-    public function testHas()
+    public function test_has()
     {
         $r1 = Cache::has('name');
 
@@ -77,7 +84,7 @@ class CacheTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(false, $r2);
     }
 
-    public function testForget()
+    public function test_forget()
     {
         Cache::forget('address');
 
@@ -88,31 +95,59 @@ class CacheTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals(Cache::get('name', false), false);
     }
 
-    public function testForgetEmpty()
+    public function test_forget_empty()
     {
         $r1 = Cache::forget('name');
 
         $this->assertEquals(false, $r1);
     }
 
-    public function testTimeOfEmpty()
+    public function test_time_of_empty()
     {
         $r1 = Cache::timeOf('lastname');
 
         $this->assertEquals('+', $r1);
     }
 
-    public function testTimeOf2Empty()
+    public function test_time_of_empty_2()
     {
         $r1 = Cache::timeOf('address');
 
         $this->assertEquals(false, $r1);
     }
 
-    public function testTimeOf3Empty()
+    public function test_time_of_empty_3()
     {
         $r1 = Cache::timeOf('age');
 
         $this->assertEquals(is_int($r1), true);
+    }
+
+    public function test_can_add_many_data_at_the_same_time_in_the_cache()
+    {
+        $passes = Cache::addMany(['name' => 'Doe', 'first_name' => 'John']);
+
+        $this->assertEquals($passes, true);
+    }
+
+    public function test_can_retrieve_multiple_cache_stored()
+    {
+        Cache::addMany(['name' => 'Doe', 'first_name' => 'John']);
+
+        $this->assertEquals(Cache::get('name'), 'Doe');
+        $this->assertEquals(Cache::get('first_name'), 'John');
+    }
+
+    public function test_clear_cache()
+    {
+        Cache::addMany(['name' => 'Doe', 'first_name' => 'John']);
+
+        $this->assertEquals(Cache::get('first_name'), 'John');
+        $this->assertEquals(Cache::get('name'), 'Doe');
+
+        Cache::clear();
+
+        $this->assertNull(Cache::get('name'));
+        $this->assertNull(Cache::get('first_name'));
     }
 }

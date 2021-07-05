@@ -1,8 +1,7 @@
 <?php
-namespace Bow\Exception;
 
-use ErrorException;
+namespace Bow\Database\Exception;
 
-class ModelException extends ErrorException
+class ModelException extends \ErrorException
 {
 }

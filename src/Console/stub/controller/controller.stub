@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Controllers;
+namespace {baseNamespace}{namespace};
 
-use App\Controllers\Controller;
+use {baseNamespace}\Controller;
+use Bow\Http\Request;
 
-class className extends Controller
+class {className} extends Controller
 {
     //
 }

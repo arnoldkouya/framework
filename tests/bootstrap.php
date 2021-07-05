@@ -2,6 +2,8 @@
 
 require __DIR__."/../vendor/autoload.php";
 
-Bow\Config\Config::configure(__DIR__.'/config');
+Bow\Configuration\Loader::configure(__DIR__.'/config');
 
-Bow\Application\Actionner::configure([], []);
+Bow\Container\Actionner::configure([], []);
+
+Bow\Database\Database::configure(require __DIR__.'/config/database.php');

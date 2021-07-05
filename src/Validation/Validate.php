@@ -1,40 +1,45 @@
 <?php
+
 namespace Bow\Validation;
 
 use Bow\Validation\Exception\ValidationException;
 
-/**
- * Class Validate
- *
- * @author  Franck Dakia <dakiafranck@gmail.com>
- * @package Bow\Support\Validate
- */
 class Validate
 {
     /**
+     * The validation fails flag
+     *
      * @var bool
      */
     private $fails;
 
     /**
+     * The last message
+     *
      * @var string
      */
-    private $lastMessage = null;
+    private $last_message = null;
 
     /**
+     * The error messages list
+     *
      * @var array
      */
     private $messages = [];
 
     /**
+     * The corrupted fields list
+     *
      * @var array
      */
-    private $corruptesFields = [];
+    private $corrupted_fields = [];
 
     /**
+     * The corrupted rule list
+     *
      * @var array
      */
-    private $corruptesRules = [];
+    private $corrupted_rules = [];
 
 
     /**
@@ -42,26 +47,28 @@ class Validate
      *
      * @param bool   $fails
      * @param string $message
-     * @param array  $corruptesFields
+     * @param array  $corrupted_fields
+     *
+     * @return void
      */
-    public function __construct($fails, $message, array $corruptesFields)
+    public function __construct($fails, $message, array $corrupted_fields)
     {
         $this->fails = $fails;
-        $this->lastMessage = $message;
-        $this->corruptesFields = array_keys($corruptesFields);
-        $this->corruptesRules = [];
+        $this->last_message = $message;
+        $this->corrupted_fields = array_keys($corrupted_fields);
+        $this->corrupted_rules = [];
         $this->messages = [];
 
-        foreach ($corruptesFields as $key => $corruptes) {
-            foreach ($corruptes as $fields) {
+        foreach ($corrupted_fields as $key => $corrupted) {
+            foreach ($corrupted as $fields) {
                 $this->messages[$key] = $fields["message"];
-                $this->corruptesRules[$key] = $fields["masque"];
+                $this->corrupted_rules[$key] = $fields["masque"];
             }
         }
     }
 
     /**
-     * Permet de conaitre l'état de la validation
+     * Allows to know the status of the validation
      *
      * @return bool
      */
@@ -71,37 +78,37 @@ class Validate
     }
 
     /**
-     * Informe sur les champs qui n'ont pas pu ètre valider
+     * Informs about fields that could not be validated
      *
      * @return array
      */
-    public function getCorrupteFields()
+    public function getCorruptedFields()
     {
-        return $this->corruptesFields;
+        return $this->corrupted_fields;
     }
 
     /**
-     * Le message d'erreur sur la dernière validation
+     * The error message on the last commit
      *
      * @return array
      */
     public function getFailsRules()
     {
-        return $this->corruptesRules;
+        return $this->corrupted_rules;
     }
 
     /**
-     * Le message d'erreur sur la dernière validation
+     * The error message on the last commit
      *
      * @return string
      */
     public function getLastMessage()
     {
-        return $this->lastMessage;
+        return $this->last_message;
     }
 
     /**
-     * Le message d'erreur sur la dernière validation
+     * The error message on the last commit
      *
      * @return array
      */
@@ -111,10 +118,14 @@ class Validate
     }
 
     /**
+     * Throw error
+     *
      * @throws ValidationException
      */
     public function throwError()
     {
-        throw new ValidationException(implode(', ', $this->messages), E_USER_ERROR);
+        response()->status(400);
+
+        throw new ValidationException(implode(', ', $this->messages));
     }
 }

@@ -5,31 +5,43 @@ namespace Bow\Http\Client;
 class Parser
 {
     /**
+     * The error message
+     *
      * @var string
      */
     private $error;
 
     /**
+     * The error number
+     *
      * @var int
      */
     private $errno;
 
     /**
+     * Curl instance
+     *
      * @var Resource
      */
     private $ch;
 
     /**
+     * The header
+     *
      * @var array
      */
     private $header;
 
     /**
+     * Flag
+     *
      * @var bool
      */
     private $executed;
 
     /**
+     * The attachment collection
+     *
      * @var array
      */
     private $attach = [];
@@ -39,20 +51,20 @@ class Parser
      *
      * @param $ch
      */
-    public function __construct(& $ch)
+    public function __construct(&$ch)
     {
         $this->ch = $ch;
     }
 
     /**
-     * Retourne des données brutes
+     * Get raw content
      *
      * @return mixed|null
      * @throws
      */
     public function raw()
     {
-        if (!$this->retournTransfertToRaw()) {
+        if (!$this->returnTransfertToRaw()) {
             return null;
         }
 
@@ -60,14 +72,14 @@ class Parser
     }
 
     /**
-     * Retourne des données
+     * Get response content
      *
      * @return mixed|null
      * @throws
      */
     public function getContent()
     {
-        if (!$this->retournTransfertToPlain()) {
+        if (!$this->returnTransfertToPlain()) {
             return null;
         }
 
@@ -75,7 +87,7 @@ class Parser
     }
 
     /**
-     * Retourne la reponse en json
+     * Get response content as json
      *
      * @param  array $default
      * @return string
@@ -83,7 +95,7 @@ class Parser
      */
     public function toJson(array $default = null)
     {
-        if (!$this->retournTransfertToPlain()) {
+        if (!$this->returnTransfertToPlain()) {
             if (is_array($default)) {
                 return json_encode($default);
             }
@@ -97,14 +109,14 @@ class Parser
     }
 
     /**
-     * Retourne la reponse sous forme de tableau
+     * Get response content as array
      *
      * @return array|mixed
      * @throws
      */
     public function toArray()
     {
-        if (!$this->retournTransfert()) {
+        if (!$this->returnTransfert()) {
             $this->close();
 
             return ["error" => true, "message" => "Connat get information"];
@@ -114,11 +126,11 @@ class Parser
     }
 
     /**
-     * Retourne response
+     * Set Curl CURLOPT_RETURNTRANSFER option
      *
      * @return bool
      */
-    private function retournTransfert()
+    private function returnTransfert()
     {
         if (!curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true)) {
             $this->close();
@@ -130,13 +142,13 @@ class Parser
     }
 
     /**
-     * Retourne response
+     * Set Curl CURLOPT_BINARYTRANSFER option
      *
      * @return bool
      */
-    private function retournTransfertToRaw()
+    private function returnTransfertToRaw()
     {
-        if ($this->retournTransfert()) {
+        if ($this->returnTransfert()) {
             if (!curl_setopt($this->ch, CURLOPT_BINARYTRANSFER, true)) {
                 $this->close();
 
@@ -148,13 +160,13 @@ class Parser
     }
 
     /**
-     * Retourne response
+     * Set Curl CURLOPT_TRANSFERTEXT option
      *
      * @return bool
      */
-    private function retournTransfertToPlain()
+    private function returnTransfertToPlain()
     {
-        if ($this->retournTransfert()) {
+        if ($this->returnTransfert()) {
             if (!curl_setopt($this->ch, CURLOPT_TRANSFERTEXT, true)) {
                 $this->close();
 
@@ -175,26 +187,25 @@ class Parser
     {
         $data = curl_exec($this->ch);
 
-        if ($data === false) {
-            $this->close();
-
-            throw new \Exception('Impossible de passer le résultat.');
-        }
-
         $this->error = curl_error($this->ch);
-
         $this->errno = curl_errno($this->ch);
-
         $this->header = curl_getinfo($this->ch);
-
         $this->executed = true;
 
         $this->close();
+
+        if ($data === false) {
+            throw new \Exception(
+                sprint("PASS ERROR: %s.", $this->error)
+            );
+        }
 
         return $data;
     }
 
     /**
+     * Get the response headers
+     *
      * @return array
      * @throws
      */
@@ -208,6 +219,8 @@ class Parser
     }
 
     /**
+     * Get the response code
+     *
      * @return string
      * @throws
      */
@@ -221,6 +234,8 @@ class Parser
     }
 
     /**
+     * Get the response executing time
+     *
      * @return string
      * @throws
      */
@@ -234,6 +249,8 @@ class Parser
     }
 
     /**
+     * Get the request connexion time
+     *
      * @return string
      * @throws
      */
@@ -247,6 +264,8 @@ class Parser
     }
 
     /**
+     * Get the response upload size
+     *
      * @return string
      * @throws
      */
@@ -260,6 +279,8 @@ class Parser
     }
 
     /**
+     * Get the request upload speed
+     *
      * @return string
      * @throws
      */
@@ -273,6 +294,8 @@ class Parser
     }
 
     /**
+     * Get the download size
+     *
      * @return string
      * @throws
      */
@@ -286,6 +309,8 @@ class Parser
     }
 
     /**
+     * Get the downlad speed
+     *
      * @return string
      * @throws
      */
@@ -299,6 +324,8 @@ class Parser
     }
 
     /**
+     * Get error message
+     *
      * @return string
      * @throws
      */
@@ -312,6 +339,8 @@ class Parser
     }
 
     /**
+     * Get error code
+     *
      * @return int
      * @throws
      */
@@ -325,6 +354,8 @@ class Parser
     }
 
     /**
+     * Get the response content type
+     *
      * @return string
      * @throws
      */
@@ -338,14 +369,19 @@ class Parser
     }
 
     /**
-     * @param $attach
+     * Add attach file
+     *
+     * @param string|array$attach
+     * @return void
      */
     public function addAttach($attach)
     {
-        $this->attach = array_merge($this->attach, $attach);
+        $this->attach = array_merge($this->attach, (array) $attach);
     }
 
     /**
+     * Get attach files
+     *
      * @return array
      */
     public function getAttach()
@@ -354,15 +390,20 @@ class Parser
     }
 
     /**
-     * @param $attachs
+     * Set attach files
+     *
+     * @param array $attachs
+     * @return void
      */
-    public function setAttach($attachs)
+    public function setAttach(array $attachs)
     {
         $this->attach = $attachs;
     }
 
     /**
      * Close connection
+     *
+     * @return void
      */
     private function close()
     {

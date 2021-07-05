@@ -1,13 +1,16 @@
 <?php
+
 namespace Bow\View;
 
-use Bow\Config\Config;
+use Bow\Configuration\Loader;
 use Bow\View\Exception\ViewException;
 
 abstract class EngineAbstract
 {
     /**
-     * Liste des helpers
+     * The helper lists
+     *
+     * @var array
      */
     const HELPERS = [
         'secure' => 'secure',
@@ -24,45 +27,57 @@ abstract class EngineAbstract
         'decrypt' => 'decrypt',
         'collect' => 'collect',
         'url' => 'url',
-        'get_header' => 'get_header',
         'input' => 'input',
         'response' => 'response',
         'request' => 'request',
-        'sanitaze' => 'sanitaze',
+        'sanitize' => 'sanitize',
         'slugify' => 'slugify',
+        'str_slug' => 'str_slug',
         'session' => 'session',
-        'form' => 'form',
         'csrf_token' => 'csrf_token',
         'csrf_field' => 'csrf_field',
         'trans' => 'trans',
+        't' => 't',
+        '__' => '__',
         'escape' => 'e',
-        'old' => 'old'
+        'old' => 'old',
+        "public_path" => "public_path",
+        "frontend_path" => "frontend_path",
+        "storage_path" => "storage_path",
+        "client_locale" => "client_locale",
+        "auth" => "auth",
     ];
 
     /**
+     * The template engine name
+     *
      * @var string
      */
     protected $name;
 
     /**
-     * @var Config
+     * The configuration loader
+     *
+     * @var Loader
      */
     protected $config;
 
     /**
-     * Permet de transforme le code du temple en code html
+     * Make template rendering
      *
      * @param  string $filename
      * @param  array  $data
+     *
      * @return mixed
      */
     abstract public function render($filename, array $data = []);
 
     /**
-     * Permet de verifier le fichier à parser
+     * Check the parsed file
      *
      * @param  string $filename
      * @param  bool   $extended
+     *
      * @return string
      * @throws ViewException
      */
@@ -73,11 +88,22 @@ abstract class EngineAbstract
         // Vérification de l'existance du fichier
         if ($this->config['view.path'] !== null) {
             if (!file_exists($this->config['view.path'].'/'.$tmp_filename)) {
-                throw new ViewException('La vue ['.$tmp_filename.'] n\'existe pas. ' . $this->config['view.path'] . '/' . $filename, E_ERROR);
+                throw new ViewException(
+                    sprintf(
+                        'The view [%s] does not exists. %s/%s',
+                        $tmp_filename,
+                        $this->config['view.path'],
+                        $filename
+                    ),
+                    E_ERROR
+                );
             }
         } else {
             if (!file_exists($tmp_filename)) {
-                throw new ViewException('La vue ['.$tmp_filename.'] n\'existe pas!.', E_ERROR);
+                throw new ViewException(
+                    sprintf('The view [%s] does not exists.', $tmp_filename),
+                    E_ERROR
+                );
             }
         }
 
@@ -89,7 +115,7 @@ abstract class EngineAbstract
     }
 
     /**
-     * Permet de retourne le nom de template charge
+     * Get the engine name
      *
      * @return mixed
      */

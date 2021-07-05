@@ -1,14 +1,19 @@
 <?php
+
 namespace Bow\Support;
 
 class Env
 {
     /**
+     * The env collection
+     *
      * @var object
      */
     private static $env;
 
     /**
+     * Check if env is load
+     *
      * @return bool
      */
     public static function isLoaded()
@@ -20,32 +25,46 @@ class Env
      * Load env file
      *
      * @param string $filename
+     *
+     * @return void
      * @throws
      */
     public static function load($filename)
     {
-        if (static::$env == null) {
-            static::$env = json_decode(trim(file_get_contents($filename)), true);
+        if (static::$env != null) {
+            return;
+        }
 
-            if (json_last_error() == JSON_ERROR_SYNTAX) {
-                throw new \ErrorException('Vérifié la syntax json de fichier d\'environement.');
-            }
+        if (!file_exists($filename)) {
+            throw new \InvalidArgumentException(
+                "The application environment file [.env.json] cannot be empty or is not define."
+            );
+        }
 
-            if (json_last_error() == JSON_ERROR_INVALID_PROPERTY_NAME) {
-                throw new \ErrorException('Vérifié le nom des propriétés du fichier d\'environement.');
-            }
+        // Get the env file content
+        $content = file_get_contents($filename);
 
-            if (json_last_error() != JSON_ERROR_NONE) {
-                throw new \ErrorException(json_last_error_msg());
-            }
+        static::$env = json_decode(trim($content), true);
+
+        if (json_last_error() == JSON_ERROR_SYNTAX) {
+            throw new \ErrorException(json_last_error_msg());
+        }
+
+        if (json_last_error() == JSON_ERROR_INVALID_PROPERTY_NAME) {
+            throw new \ErrorException('Check environment file json syntax (.env.json)');
+        }
+
+        if (json_last_error() != JSON_ERROR_NONE) {
+            throw new \ErrorException(json_last_error_msg());
         }
     }
 
     /**
-     * Permet de récuperer le information de l'environement
+     * Retrieve information from the environment
      *
      * @param  string $key
      * @param  null   $default
+     *
      * @return mixed
      */
     public static function get($key, $default = null)
@@ -56,14 +75,15 @@ class Env
             return $value;
         }
 
-        return isset(static::$env[$key]) ? static::$env[$key] : $default;
+        return static::$env[$key] ?? $default;
     }
 
     /**
-     * Permet de modifier l'information de l'environement
+     * Allows you to modify the information of the environment
      *
      * @param string $key
      * @param null   $value
+     *
      * @return mixed
      */
     public static function set($key, $value)

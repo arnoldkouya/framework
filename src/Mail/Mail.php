@@ -1,36 +1,42 @@
 <?php
+
 namespace Bow\Mail;
 
-use Bow\View\View;
 use Bow\Mail\Exception\MailException;
+use Bow\View\View;
 
-/**
- * Class Mail
- *
- * @author  Franck Dakia <dakiafranck@gmail.com>
- * @package Bow\Mail
- */
 class Mail
 {
     /**
+     * The driver collector
+     *
+     * @var array
+     */
+    private static $drivers = [
+        'smtp' => \Bow\Mail\Driver\SmtpDriver::class,
+        'mail' => \Bow\Mail\Driver\NativeDriver::class,
+        'ses' => \Bow\Mail\Driver\SesDriver::class,
+    ];
+
+    /**
+     * The mail driver instance
+     *
      * @var SimpleMail|Smtp
      */
     private static $instance;
 
     /**
+     * The mail configuration
+     *
      * @var array
      */
     private static $config;
 
     /**
-     * Maxi singleton
-     */
-    private function __clone()
-    {
-    }
-
-    /**
+     * Mail constructor
+     *
      * @param array $config
+     * @throws MailException
      */
     public function __construct(array $config = [])
     {
@@ -40,7 +46,7 @@ class Mail
     /**
      * Configure la classe Mail
      *
-     * @param  array $config La configuration
+     * @param  array $config
      * @throws MailException
      * @return SimpleMail|Smtp
      */
@@ -50,27 +56,52 @@ class Mail
             static::$config = $config;
         }
 
-        if (!in_array($config['driver'], ["smtp", "mail"])) {
-            throw new MailException("Le type n'est pas réconnu.", E_USER_ERROR);
+        if (!in_array($config['driver'], array_keys(static::$drivers))) {
+            throw new MailException("The type is not known.", E_USER_ERROR);
         }
 
-        if ($config['driver'] == "mail") {
-            if (!self::$instance instanceof SimpleMail) {
-                self::$instance = new SimpleMail($config['mail']);
-            }
-        } else {
-            if (!self::$instance instanceof Smtp) {
-                self::$instance = new Smtp($config['smtp']);
-            }
+        $name = $config['driver'];
+        $driver = static::$drivers[$name];
+
+        if (!static::$instance instanceof $driver) {
+            static::$instance = new $driver($config[$name]);
         }
 
-        return self::$instance;
+        return static::$instance;
+    }
+
+    /**
+     * Push new driver
+     *
+     * @param strinb $name
+     * @param strinb $class_name
+     * @return bool
+     */
+    public function pushDriver(string $name, string $class_name)
+    {
+        if (array_key_exists($name, static::$drivers)) {
+            return false;
+        }
+
+        static::$drivers[$name] = $class_name;
+
+        return true;
+    }
+
+    /**
+     * Get mail instance
+     *
+     * @return Smtp|SimpleMail
+     */
+    public static function getInstance()
+    {
+        return static::$instance;
     }
 
     /**
      * @inheritdoc
      */
-    public static function send($view, $bind, \Closure $cb)
+    public static function send($view, $bind, callable $cb)
     {
         if (is_callable($bind)) {
             $cb = $bind;
@@ -78,22 +109,23 @@ class Mail
         }
 
         $message = new Message();
-        $data = View::make($view, $bind);
+
+        $data = View::parse($view, $bind);
+
         $message->setMessage($data);
 
         call_user_func_array($cb, [$message]);
 
-        return self::$instance->send($message);
+        return static::$instance->send($message);
     }
 
     /**
-     * Envoye de mail simulaire a la fonction mail de PHP
+     * Send mail similar to the PHP mail function
      *
-     * @param  string|array $to      Le destinateur
-     * @param  string       $subject L'objet du mail
-     * @param  string       $data    Le message du meail
-     * @param  array        $headers [optinal] Les entêtes additionnel du
-     *                               mail.
+     * @param  string|array $to
+     * @param  string       $subject
+     * @param  string       $data
+     * @param  array        $headers
      * @return mixed
      */
     public static function raw($to, $subject, $data, array $headers = [])
@@ -103,20 +135,21 @@ class Mail
         }
 
         $message = new Message();
+
         $message->toList($to)->subject($subject)->setMessage($data);
 
         foreach ($headers as $key => $value) {
             $message->addHeader($key, $value);
         }
-        
+
         return static::$instance->send($message);
     }
 
     /**
-     * Modifie le driver smtp|mail
+     * Modify the smtp|mail driver
      *
-     * @param  $driver
-     * @return SimpleMail|Smtp
+     * @param string $driver
+     * @return SendInterface
      * @throws MailException
      */
     public static function setDriver($driver)
@@ -125,7 +158,12 @@ class Mail
             throw new MailException('Mail non configurer.');
         }
 
+        if (in_array($driver, array_keys(static::$drivers))) {
+            throw new MailException('The driver [$driver] is not available');
+        }
+
         static::$config['driver'] = $driver;
+
         return static::configure(static::$config);
     }
 
@@ -135,7 +173,6 @@ class Mail
      * @param  string $name
      * @param  array  $arguments
      * @return mixed
-     *
      * @throws \ErrorException
      */
     public function __call($name, $arguments)
@@ -144,6 +181,6 @@ class Mail
             return call_user_func_array([static::class, $name], $arguments);
         }
 
-        throw new \ErrorException('Cette fonction n\'existe pas. [' . $name . ']', E_ERROR);
+        throw new \ErrorException("This function does not exist. [$name]", E_ERROR);
     }
 }

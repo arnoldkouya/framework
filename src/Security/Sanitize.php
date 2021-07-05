@@ -2,12 +2,10 @@
 
 namespace Bow\Security;
 
-use function count;
-
 class Sanitize
 {
     /**
-     * Permet de nettoyer les données
+     * To clean the data
      *
      * @param mixed $data
      * @param bool  $secure
@@ -16,21 +14,15 @@ class Sanitize
      */
     public static function make($data, $secure = false)
     {
-        // récupération de la fonction à la lance.
+        // Recovery of the function at the lance.
         $method = $secure === true ? 'secure' : 'data';
 
-        // strict integer regex
+        // Strict integer regex
         $rNum = '/^[0-9]+(\.[0-9]+)?$/';
 
         if (is_string($data)) {
-            if (! preg_match($rNum, $data, $match)) {
+            if (!preg_match($rNum, $data, $match)) {
                 return static::$method($data);
-            }
-
-            if (count($match) == 2) {
-                $data = (float) $data;
-            } else {
-                $data = (int) $data;
             }
 
             return $data;
@@ -58,9 +50,9 @@ class Sanitize
     }
 
     /**
-     * Permet de nettoyerune chaine de caractère
+     * Allows you to clean a string of characters
      *
-     * @param  string $data les données a néttoyé
+     * @param  string $data
      * @return string
      */
     public static function data($data)
@@ -69,10 +61,9 @@ class Sanitize
     }
 
     /**
-     * Permet de nettoye rune chaine de caractère
-     * ',<tag>,&nbsp;
+     * Allows you to clean a string of characters
      *
-     * @param  string $data les données a sécurisé
+     * @param  string $data
      * @return string
      */
     public static function secure($data)

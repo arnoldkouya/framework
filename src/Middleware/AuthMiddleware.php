@@ -3,20 +3,21 @@
 namespace Bow\Middleware;
 
 use Bow\Auth\Auth;
+use Bow\Http\Request;
 
 class AuthMiddleware
 {
     /**
-     * Fonction de lancement du middleware.
+     * Launch function of the middleware.
      *
-     * @param  \Bow\Http\Request $request
-     * @param  callable          $next
+     * @param  Request $request
+     * @param  Callable  $next
      * @return boolean
      */
-    public function checker($request, callable $next)
+    public function process(Request $request, callable $next, array $guard = [])
     {
-        if (Auth::check()) {
-            return $next();
+        if (Auth::getInstance()->check()) {
+            return $next($request);
         }
 
         return redirect($this->redirectTo());

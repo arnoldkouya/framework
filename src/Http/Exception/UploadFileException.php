@@ -1,6 +1,9 @@
 <?php
-namespace Bow\Exception;
 
-class UploadFileException extends \Exception
+namespace Bow\Http\Exception;
+
+use ErrorException;
+
+class UploadFileException extends ErrorException
 {
 }

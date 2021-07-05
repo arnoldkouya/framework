@@ -8,76 +8,79 @@ use Bow\Support\Str;
 class Tokenize
 {
     /**
+     * The token expiration time
+     *
      * @static int
      */
-    private static $expirate_at;
+    private static $expire_at;
 
     /**
-     * Createur de token csrf
+     * Csrf token creator
      *
      * @param  int $time
      * @return bool
      */
     public static function makeCsrfToken($time = null)
     {
-        if (Session::has('__bow.csrf')) {
+        if (Session::getInstance()->has('__bow.csrf', true)) {
             return true;
         }
 
         if (is_int($time)) {
-            static::$expirate_at = $time;
+            static::$expire_at = $time;
         }
 
         $token = static::make();
 
-        Session::add(
-            '__bow.csrf',
-            [
+        Session::getInstance()->add('__bow.csrf', [
             'token' => $token,
-            'expirate' => time() + static::$expirate_at,
+            'expire_at' => time() + static::$expire_at,
             'field' => '<input type="hidden" name="_token" value="' . $token .'"/>'
-            ]
-        );
+        ]);
 
-        Session::add('_token', $token);
+        Session::getInstance()->add('_token', $token);
 
         return true;
     }
 
     /**
-     * Générer une clé crypté en md5
+     * GGenerate an encrypted key
      *
      * @return string
      */
     public static function make()
     {
         $salt = date('Y-m-d H:i:s', time() - 10000) . uniqid(rand(), true);
+
         $token = base64_encode(base64_encode(openssl_random_pseudo_bytes(6)) . $salt);
+
         return Str::slice(hash('sha256', $token), 1, 62);
     }
 
     /**
-     * Retourne un token csrf générer
+     * Get a csrf token generate
      *
      * @param  int $time
+     *
      * @return mixed
      */
     public static function csrf($time = null)
     {
         static::makeCsrfToken($time);
-        return Session::get('__bow.csrf');
+
+        return Session::getInstance()->get('__bow.csrf');
     }
 
     /**
-     * Vérifie si le token en expire
+     * Check if the token expires
      *
-     * @param int $time le temps d'expiration
+     * @param int $time
      *
      * @return boolean
      */
-    public static function csrfExpirated($time = null)
+    public static function csrfExpired($time = null)
     {
-        if (Session::has('__bow.csrf')) {
+        if (Session::getInstance()->has('__bow.csrf')) {
             return false;
         }
 
@@ -85,9 +88,9 @@ class Tokenize
             $time = time();
         }
 
-        $csrf = Session::get('__bow.csrf');
+        $csrf = Session::getInstance()->get('__bow.csrf');
 
-        if ($csrf['expirate'] >= (int) $time) {
+        if ($csrf['expire_at'] >= (int) $time) {
             return true;
         }
 
@@ -95,23 +98,21 @@ class Tokenize
     }
 
     /**
-     * Vérifie si token csrf est valide
+     * Check if csrf token is valid
      *
-     * @param string $token  le token a
-     *                       vérifié
-     * @param bool   $strict le niveau de
-     *                       vérification
+     * @param string $token
+     * @param bool   $strict
      *
      * @return boolean
      */
     public static function verify($token, $strict = false)
     {
 
-        if (!Session::has('__bow.csrf')) {
+        if (!Session::getInstance()->has('__bow.csrf')) {
             return false;
         }
 
-        $csrf = Session::get('__bow.csrf');
+        $csrf = Session::getInstance()->get('__bow.csrf');
 
         if ($token !== $csrf['token']) {
             return false;
@@ -120,18 +121,21 @@ class Tokenize
         $status = true;
 
         if ($strict) {
-            $status = $status && static::CsrfExpirated(time());
+            $status = $status && static::CsrfExpired(time());
         }
 
         return $status;
     }
 
     /**
-     * Détruie le token
+     * Destroy the token
+     *
+     * @return void
      */
     public static function clear()
     {
-        Session::remove('__bow.csrf');
-        Session::remove('_token');
+        Session::getInstance()->remove('__bow.csrf');
+
+        Session::getInstance()->remove('_token');
     }
 }

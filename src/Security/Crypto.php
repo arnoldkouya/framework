@@ -7,17 +7,21 @@ use Bow\Support\Str;
 class Crypto
 {
     /**
+     * The security key
+     *
      * @var string
      */
-    private static $key = '';
+    private static $key;
 
     /**
+     * The security cipher
+     *
      * @var string
      */
     private static $cipher = 'AES-256-CBC';
 
     /**
-     * Crypto constructor
+     * Set the key
      *
      * @param string $key
      * @param string $cipher
@@ -26,35 +30,40 @@ class Crypto
     {
         static::$key = $key;
 
-        if ($cipher) {
+        if (!is_null($cipher)) {
             static::$cipher = $cipher;
         }
     }
 
     /**
-     * crypt
+     * Encrypt data
      *
-     * @param  string $data les données a encrypté
+     * @param  string $data
+     *
      * @return string
      */
     public static function encrypt($data)
     {
         $iv_size = openssl_cipher_iv_length(static::$cipher);
+
         $iv = Str::slice(sha1(static::$key), 0, $iv_size);
+
         return openssl_encrypt($data, static::$cipher, static::$key, 0, $iv);
     }
 
     /**
      * decrypt
      *
-     * @param string $data les données a décrypté
+     * @param string $data
      *
      * @return string
      */
     public static function decrypt($data)
     {
         $iv_size = openssl_cipher_iv_length(static::$cipher);
+        
         $iv = Str::slice(sha1(static::$key), 0, $iv_size);
+
         return openssl_decrypt($data, static::$cipher, static::$key, 0, $iv);
     }
 }

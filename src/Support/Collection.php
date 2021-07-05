@@ -1,22 +1,18 @@
 <?php
+
 namespace Bow\Support;
 
-/**
- * Classe de la manipulation de donnés dans un tableau
- *
- * @class   Collection
- * @author  Franck Dakia <dakiafranck@gmail.com>
- * @package Bow\Support
- */
 class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \ArrayAccess
 {
     /**
+     * The collection store
+     *
      * @var array
      */
     protected $storage = [];
 
     /**
-     * Constructeur d'instance.
+     * Collection constructor
      *
      * @param array $arr
      */
@@ -26,7 +22,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Le premier element de la liste
+     * The first element of the list
      *
      * @return mixed
      */
@@ -36,7 +32,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Le dernier element de la liste
+     * The last element of the list
      *
      * @return array
      */
@@ -50,17 +46,15 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * has, vérifie l'existance une clé dans la colléction de session
+     * Check existence of a key in the session collection
      *
-     * @param  string $key    La clé de l'élément
-     *                        récherché
-     * @param  bool   $strict Quand $val est a true alors :has vas vérifie $key non pas comment une cle mais un valeur.
+     * @param  string $key
+     * @param  bool   $strict
      * @return boolean
      */
     public function has($key, $strict = false)
     {
-        // Quand $strict est a true alors :has vas vérifie
-        // $key non pas comment une cle mais un valeur.
+        // When $strict is true, he check $key not how a key but a value.
         $isset = isset($this->storage[$key]);
 
         if ($isset) {
@@ -73,7 +67,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * isEmpty, vérifie si une colléction est vide.
+     * Check if a collection is empty.
      *
      * @return boolean
      */
@@ -93,17 +87,23 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * get, permet de récupérer une valeur ou la colléction de valeur.
+     * Allows to recover a value or value collection.
      *
      * @param string $key
      * @param mixed  $default
      *
      * @return mixed
      */
-    public function get($key, $default = null)
+    public function get($key = null, $default = null)
     {
+        if (is_null($key)) {
+            return $this->storage;
+        }
+        
         if ($this->has($key)) {
-            return $this->storage[$key] == null ? $default : $this->storage[$key];
+            return $this->storage[$key] == null
+                ? $default
+                : $this->storage[$key];
         }
 
         if ($default !== null) {
@@ -118,7 +118,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * retourne la liste des valeurs de la collection
+     * Get the list of values of collection
      *
      * @return Collection
      */
@@ -134,7 +134,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * retourne la liste des clés de la collection
+     * Get the list of keys of collection
      *
      * @return Collection
      */
@@ -150,7 +150,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Quand on appelera la fonction count sur un object collection.
+     * Count the collection element.
      *
      * @return int
      */
@@ -160,10 +160,9 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * collectionify, permet de récupérer une valeur ou la colléction de valeur sous forme
-     * d'instance de collection.
+     * To retrieve a value or value collection form d'instance de collection.
      *
-     * @param string $key La clé de l'élément
+     * @param string $key
      *
      * @return Collection
      */
@@ -183,7 +182,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * delete, supprime une entrée dans la colléction
+     * Delete an entry in the collection
      *
      * @param string $key
      *
@@ -197,7 +196,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * set, modifie une entrée dans la colléction ou l'ajout si non
+     * Modify an entry in the collection or the addition if not
      *
      * @param string $key
      * @param mixed  $value
@@ -220,7 +219,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * each parcour l'ensemble des valeurs de la collection
+     * Browse all the values of the collection
      *
      * @param callable $cb
      */
@@ -232,7 +231,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * fusion la collection avec un tableau ou une autre collection
+     * Merge the collection with a painting or other collection
      *
      * @param Collection|array $array
      * @return Collection
@@ -243,17 +242,26 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     {
 
         if (is_array($array)) {
-            $this->storage = array_merge($this->storage, $array);
+            $this->storage = array_merge(
+                $this->storage,
+                $array
+            );
         } elseif ($array instanceof Collection) {
-            $this->storage = array_merge($this->storage, $array->toArray());
+            $this->storage = array_merge(
+                $this->storage,
+                $array->toArray()
+            );
         } else {
-            throw new \ErrorException(__METHOD__ . '(), must be take 1 parameter to be array or Collection, ' . gettype($array) . ' given', E_ERROR);
+            throw new \ErrorException(
+                'Must be take 1 parameter to be array or Collection',
+                E_ERROR
+            );
         }
 
         return $this;
     }
     /**
-     * map
+     * Map
      *
      * @param callable $cb
      *
@@ -273,7 +281,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * filter
+     * Filter
      *
      * @param callable $cb
      *
@@ -293,7 +301,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Fill
+     * Fill storage
      *
      * @param mixed $data
      * @param int   $offset
@@ -314,7 +322,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * reduce
+     * Reduce
      *
      * @param callable $cb
      * @param mixed    $next
@@ -324,7 +332,9 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     public function reduce($cb, $next = null)
     {
         foreach ($this->storage as $key => $current) {
-            $next = call_user_func_array($cb, [$next, $current, $key, $this->storage]);
+            $next = call_user_func_array($cb, [
+                $next, $current, $key, $this->storage
+            ]);
         }
 
         return $this;
@@ -352,11 +362,14 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     {
         $sum = 0;
 
-        $this->recursive($this->storage, function ($value) use (& $sum) {
-            if (is_numeric($value)) {
-                $sum += $value;
+        $this->recursive(
+            $this->storage,
+            function ($value) use (&$sum) {
+                if (is_numeric($value)) {
+                    $sum += $value;
+                }
             }
-        });
+        );
 
         if ($cb !== null) {
             call_user_func_array($cb, [$sum]);
@@ -374,37 +387,41 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
      */
     public function max($cb = null)
     {
-        return $this->aggregate($cb, 'max');
+        return $this->aggregate('max', $cb);
     }
 
     /**
      * Max
      *
      * @param callable $cb
+     *
      * @return number
      */
     public function min($cb = null)
     {
-        return $this->aggregate($cb, 'min');
+        return $this->aggregate('min', $cb);
     }
 
     /**
-     * aggregate Execute max|min
+     * Aggregate Execute max|min
      *
      * @param callable $cb
      * @param string   $type
      *
      * @return number
      */
-    private function aggregate($cb = null, $type)
+    private function aggregate($type, $cb = null)
     {
         $data = [];
 
-        $this->recursive($this->storage, function ($value) use (& $data) {
-            if (is_numeric($value)) {
-                $data[] = $value;
+        $this->recursive(
+            $this->storage,
+            function ($value) use (&$data) {
+                if (is_numeric($value)) {
+                    $data[] = $value;
+                }
             }
-        });
+        );
 
         $r = call_user_func_array($type, $data);
 
@@ -416,47 +433,53 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Permet de retourne la liste de clé
-     * et retourne une instance de Collection.
+     * Returns the key list and return an instance of Collection.
      *
-     * @param  array $except Liste des éléments à ignorer
+     * @param  array $except
+     *
      * @return Collection
      */
     public function excepts(array $except)
     {
         $data = [];
 
-        $this->recursive($this->storage, function ($value, $key) use (& $data, $except) {
-            if (in_array($key, $except)) {
-                $data[$key] = $value;
+        $this->recursive(
+            $this->storage,
+            function ($value, $key) use (&$data, $except) {
+                if (in_array($key, $except)) {
+                    $data[$key] = $value;
+                }
             }
-        });
+        );
 
         return new Collection($data);
     }
 
     /**
-     * Permet d'ignorer la clé que l'on lui donne
-     * et retourne une instance de Collection.
+     * Ignore the key that is given to it and return an instance of Collection.
      *
-     * @param  array $ignores Liste des éléments à ignorer
+     * @param  array $ignores
+     *
      * @return Collection
      */
     public function ignores(array $ignores)
     {
         $data = [];
 
-        $this->recursive($this->storage, function ($value, $key) use (& $data, $ignores) {
-            if (!in_array($key, $ignores)) {
-                $data[$key] = $value;
+        $this->recursive(
+            $this->storage,
+            function ($value, $key) use (&$data, $ignores) {
+                if (!in_array($key, $ignores)) {
+                    $data[$key] = $value;
+                }
             }
-        });
+        );
 
         return new Collection($data);
     }
 
     /**
-     * reverse
+     * Reverse collection
      *
      * @return Collection
      */
@@ -466,20 +489,21 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * update, met à jour une valeur existant dans la collection
+     * Update an existing value in the collection
      *
      * @param  string|integer $key
      * @param  mixed          $data
      * @param  boolean        $overide
+     *
      * @return boolean
      */
-    public function update($key, $data, $overide = false)
+    public function update($key, $data, $override = false)
     {
         if (!$this->has($key)) {
             return false;
         }
 
-        if (!is_array($this->storage[$key]) || $overide === true) {
+        if (!is_array($this->storage[$key]) || $override === true) {
             $this->storage[$key] = $data;
 
             return true;
@@ -495,23 +519,32 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * yieldify, lance un générateur
+     * Launches a generator
      *
      * @return \Generator
      */
     public function yieldify()
     {
         foreach ($this->storage as $key => $value) {
-            yield (object) ['value' => $value, 'key' => $key, 'done' => false];
+            yield (object) [
+                'value' => $value,
+                'key' => $key,
+                'done' => false
+            ];
         }
 
-        yield (object) ['value' => null, 'key' => null, 'done' => true];
+        yield (object) [
+            'value' => null,
+            'key' => null,
+            'done' => true
+        ];
     }
 
     /**
-     * Retourne les données au format JSON
+     * Get the data in JSON format
      *
      * @param  int $option
+     *
      * @return string
      */
     public function toJson($option = 0)
@@ -520,7 +553,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * length, longeur de la collection
+     * Length of the collection
      *
      * @return int
      */
@@ -530,7 +563,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Supprime le premier élément de la collection
+     * Deletes the first item in the collection
      *
      * @return mixed
      */
@@ -542,7 +575,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Supprime le dernier élément de la collection
+     * Deletes the last item in the collection
      *
      * @return mixed
      */
@@ -552,7 +585,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Retourne les éléments de la collection sous format de table;
+     * Returns the elements of the collection in table format
      *
      * @return array
      */
@@ -560,19 +593,22 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     {
         $collection = [];
 
-        $this->recursive($this->storage, function ($value, $key) use (& $collection) {
-            if (is_object($value)) {
-                $collection[$key] = (array) $value;
-            } else {
-                $collection[$key] = $value;
+        $this->recursive(
+            $this->storage,
+            function ($value, $key) use (&$collection) {
+                if (is_object($value)) {
+                    $collection[$key] = (array) $value;
+                } else {
+                    $collection[$key] = $value;
+                }
             }
-        });
+        );
 
         return $collection;
     }
 
     /**
-     * Retourne les éléments de la collection
+     * Returns the elements of the collection
      *
      * @return mixed
      */
@@ -582,10 +618,11 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Ajout après le dernier élément de la collection
+     * Add after the last item in the collection
      *
      * @param  mixed      $value
      * @param  int|string $key
+     *
      * @return mixed
      */
     public function push($value, $key = null)
@@ -600,9 +637,10 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
-     * Parcour recursive d'un tableau ou objet
+     * Recursive walk of a table or object
      *
      * @param array    $data
+     *
      * @param callable $cb
      */
     private function recursive(array $data, callable $cb)
@@ -619,7 +657,7 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     /**
      * __get
      *
-     * @param string $name La clé
+     * @param mixed $name
      *
      * @return mixed
      */
@@ -631,8 +669,10 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     /**
      * __set
      *
-     * @param $name
-     * @param $value
+     * @param mixed $name
+     * @param mixed $value
+     *
+     * @return void
      */
     public function __set($name, $value)
     {
@@ -642,7 +682,8 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     /**
      * __isset
      *
-     * @param  $name
+     * @param mixed $name
+     *
      * @return bool
      */
     public function __isset($name)
@@ -653,7 +694,9 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     /**
      * __unset
      *
-     * @param $name
+     * @param mixed $name
+     *
+     * @return void
      */
     public function __unset($name)
     {
@@ -672,6 +715,8 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
 
     /**
      * jsonSerialize
+     *
+     * @return string
      */
     public function jsonSerialize()
     {
@@ -680,6 +725,8 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
 
     /**
      * getIterator
+     *
+     * @return \ArrayIterator
      */
     public function getIterator()
     {
@@ -687,7 +734,10 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
+     * offsetExists
+     *
      * @param mixed $offset
+     *
      * @return bool
      */
     public function offsetExists($offset)
@@ -696,7 +746,10 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
+     * offsetGet
+     *
      * @param mixed $offset
+     *
      * @return mixed
      */
     public function offsetGet($offset)
@@ -705,8 +758,12 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
+     * offsetSet
+     *
      * @param mixed $offset
      * @param mixed $value
+     *
+     * @return void
      */
     public function offsetSet($offset, $value)
     {
@@ -714,7 +771,11 @@ class Collection implements \Countable, \JsonSerializable, \IteratorAggregate, \
     }
 
     /**
+     * offsetUnset
+     *
      * @param mixed $offset
+     *
+     * @return void
      */
     public function offsetUnset($offset)
     {
